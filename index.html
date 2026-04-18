@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>NBA 2048</title>
+  <style>
+    /* ── RESET ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── BODY ── */
+    body {
+      background: #faf8ef;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 10px 30px;
+      min-height: 100vh;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* ── CONTAINER ── */
+    .container {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .header-row1 {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .game-title {
+      font-size: clamp(2rem, 8vw, 2.8rem);
+      font-weight: 900;
+      line-height: 1;
+      color: #776e65;
+    }
+
+    .game-title .nba  { color: #c9082a; }
+    .game-title .num  { color: #f67c5f; }
+
+    .scores {
+      display: flex;
+      gap: 8px;
+    }
+
+    .score-box {
+      background: #bbada0;
+      border-radius: 6px;
+      padding: 6px 14px;
+      text-align: center;
+      min-width: 70px;
+    }
+
+    .score-box .label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: #eee4da;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .score-box .value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .header-row2 {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .daily-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #776e65;
+    }
+
+    .btn-group { display: flex; gap: 7px; }
+
+    .btn {
+      background: #8f7a66;
+      color: #f9f6f2;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 13px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.12s, transform 0.08s;
+    }
+    .btn:hover  { background: #a08878; }
+    .btn:active { transform: scale(0.96); }
+
+    /* ── BOARD ── */
+    .board-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .board {
+      --gap: clamp(7px, 2vw, 11px);
+      background: #bbada0;
+      border-radius: 10px;
+      padding: var(--gap);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      gap: var(--gap);
+      width: 100%;
+      aspect-ratio: 1;
+    }
+
+    /* ── CELLS ── */
+    .cell {
+      border-radius: 5px;
+      background: rgba(238, 228, 218, 0.38);
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── TILE (filled cell) ── */
+    .tile {
+      cursor: default;
+    }
+
+    .tile-photo {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    .tile-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
+    }
+
+    .tile-photo .no-photo {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .tile-badge {
+      position: absolute;
+      top: 3px;
+      right: 3px;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      font-size: clamp(0.45rem, 1.2vw, 0.6rem);
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 3px;
+      line-height: 1.4;
+      pointer-events: none;
+    }
+
+    .tier-label {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0,0,0,0.0);
+      padding: 1px 3px;
+      font-size: clamp(0.38rem, 1.1vw, 0.52rem);
+      font-weight: 600;
+      color: rgba(255,255,255,0.85);
+      text-align: right;
+      pointer-events: none;
+    }
+
+    .tile-name {
+      background: rgba(0,0,0,0.72);
+      color: #fff;
+      font-size: clamp(0.45rem, 1.3vw, 0.62rem);
+      font-weight: 600;
+      padding: 2px 4px;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+      flex-shrink: 0;
+    }
+
+    /* Tier border/glow colors */
+    .tier-0  { border: 2px solid #ffd700; box-shadow: 0 0 6px rgba(255,215,0,0.5); }
+    .tier-1  { border: 2px solid #1d428a; box-shadow: 0 0 5px rgba(29,66,138,0.4); }
+    .tier-2  { border: 2px solid #007a33; box-shadow: 0 0 5px rgba(0,122,51,0.4); }
+    .tier-3  { border: 2px solid #c8102e; box-shadow: 0 0 5px rgba(200,16,46,0.35); }
+    .tier-4  { border: 2px solid #f5821f; box-shadow: 0 0 5px rgba(245,130,31,0.35); }
+    .tier-5  { border: 2px solid #6f2da8; box-shadow: 0 0 5px rgba(111,45,168,0.35); }
+    .tier-6  { border: 2px solid #007dc5; box-shadow: 0 0 4px rgba(0,125,197,0.35); }
+    .tier-7  { border: 2px solid #9ea1a2; box-shadow: 0 0 4px rgba(158,161,162,0.3); }
+    .tier-8  { border: 2px solid #8b4513; box-shadow: 0 0 4px rgba(139,69,19,0.3); }
+    .tier-9  { border: 2px solid #444;    box-shadow: 0 0 3px rgba(0,0,0,0.3); }
+    .tier-10 { border: 2px solid #111;    box-shadow: 0 0 8px rgba(0,0,0,0.6); }
+
+    /* Tile background tints by tier */
+    .tier-0  .tile-photo { background: #2a2000; }
+    .tier-1  .tile-photo { background: #0a1a35; }
+    .tier-2  .tile-photo { background: #001f0e; }
+    .tier-3  .tile-photo { background: #2a000a; }
+    .tier-4  .tile-photo { background: #2a1500; }
+    .tier-5  .tile-photo { background: #1a0030; }
+    .tier-6  .tile-photo { background: #001830; }
+    .tier-7  .tile-photo { background: #1a1a1a; }
+    .tier-8  .tile-photo { background: #1c0a00; }
+    .tier-9  .tile-photo { background: #111; }
+    .tier-10 .tile-photo { background: #000; }
+
+    /* ── ANIMATIONS ── */
+    @keyframes appear {
+      0%   { transform: scale(0.1); opacity: 0; }
+      70%  { transform: scale(1.06); }
+      100% { transform: scale(1);   opacity: 1; }
+    }
+
+    @keyframes pop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.13); }
+      100% { transform: scale(1); }
+    }
+
+    .anim-new    { animation: appear 0.18s ease forwards; }
+    .anim-merged { animation: pop 0.22s ease forwards; }
+
+    /* ── OVERLAYS ── */
+    .overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(250,248,239,0.88);
+      border-radius: 10px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      gap: 12px;
+      padding: 20px;
+    }
+    .overlay.show { display: flex; }
+
+    .overlay-emoji { font-size: 3rem; }
+
+    .overlay-title {
+      font-size: clamp(1.8rem, 7vw, 2.6rem);
+      font-weight: 900;
+      color: #776e65;
+      text-align: center;
+    }
+
+    .overlay-sub {
+      font-size: 0.88rem;
+      color: #776e65;
+      text-align: center;
+      line-height: 1.5;
+      max-width: 280px;
+    }
+
+    /* ── HOW TO PLAY ── */
+    .how-to {
+      width: 100%;
+      background: rgba(187,173,160,0.22);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: none;
+    }
+    .how-to.open { display: block; }
+
+    .how-to h3 {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #776e65;
+      margin-bottom: 8px;
+    }
+
+    .how-to p {
+      font-size: 0.78rem;
+      color: #776e65;
+      line-height: 1.55;
+      margin-bottom: 5px;
+    }
+
+    .how-to strong { color: #554e48; }
+
+    /* ── RARITY LEGEND ── */
+    .legend {
+      width: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      justify-content: center;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.68rem;
+      color: #776e65;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── SCROLLBAR HIDE (mobile) ── */
+    ::-webkit-scrollbar { width: 0; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-row1">
+      <div class="game-title">
+        <span class="nba">NBA</span>&nbsp;<span class="num">2048</span>
+      </div>
+      <div class="scores">
+        <div class="score-box">
+          <div class="label">Score</div>
+          <div class="value" id="score">0</div>
+        </div>
+        <div class="score-box">
+          <div class="label">Best</div>
+          <div class="value" id="best">0</div>
+        </div>
+      </div>
+    </div>
+    <div class="header-row2">
+      <div class="daily-label" id="daily-label">📅 Daily Challenge</div>
+      <div class="btn-group">
+        <button class="btn" id="btn-how">How to Play</button>
+        <button class="btn" id="btn-new">New Game</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- BOARD -->
+  <div class="board-wrapper">
+    <div class="board" id="board"></div>
+
+    <div class="overlay" id="overlay-win">
+      <div class="overlay-emoji">🏆</div>
+      <div class="overlay-title">You Win!</div>
+      <div class="overlay-sub">
+        You merged all the way to the <strong>2048 tile</strong> and found the most obscure player in the NBA!
+      </div>
+      <button class="btn" id="btn-continue">Keep Going</button>
+    </div>
+
+    <div class="overlay" id="overlay-lose">
+      <div class="overlay-emoji">😤</div>
+      <div class="overlay-title">Game Over!</div>
+      <div class="overlay-sub">
+        No more moves left. Come back tomorrow for a new Daily Challenge!
+      </div>
+      <button class="btn" id="btn-retry">Try Again</button>
+    </div>
+  </div>
+
+  <!-- HOW TO PLAY -->
+  <div class="how-to" id="how-to">
+    <h3>How to Play</h3>
+    <p>Use <strong>arrow keys</strong> (desktop) or <strong>swipe</strong> (mobile) to slide all tiles.</p>
+    <p>When two tiles showing the <strong>same player</strong> collide, they merge into a <strong>more obscure</strong> player at the next tier.</p>
+    <p><strong>Famous players</strong> like LeBron James are common and appear with small values (2, 4). Keep merging to unlock increasingly obscure players — all the way to the <strong>2048 tile</strong>!</p>
+    <p>Each day features a <strong>new set of NBA players</strong>. New players unlock at midnight.</p>
+    <p>How deep into the NBA roster can you go?</p>
+  </div>
+
+  <!-- RARITY LEGEND -->
+  <div class="legend" id="legend"></div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// PLAYER DATABASE  —  11 tiers (value 2 → 2048)
+// More famous = lower tier number = lower value
+// ═══════════════════════════════════════════════════════
+const TIERS = [
+  // ── TIER 0  (value 2)  Superstars — everyone knows them ──
+  {
+    label: "Superstar",
+    color: "#ffd700",
+    players: [
+      { name: "LeBron James",           id: 2544       },
+      { name: "Stephen Curry",          id: 201939     },
+      { name: "Kevin Durant",           id: 201142     },
+      { name: "Giannis Antetokounmpo",  id: 203507     },
+      { name: "Luka Doncic",            id: 1629029    },
+      { name: "Nikola Jokic",           id: 203999     },
+      { name: "Joel Embiid",            id: 203954     },
+      { name: "Jayson Tatum",           id: 1628369    },
+      { name: "Shai Gilgeous-Alexander",id: 1628983    },
+    ],
+  },
+  // ── TIER 1  (value 4)  All-Stars ──
+  {
+    label: "All-Star",
+    color: "#1d428a",
+    players: [
+      { name: "Damian Lillard",         id: 203081     },
+      { name: "Anthony Davis",          id: 203076     },
+      { name: "Jaylen Brown",           id: 1627759    },
+      { name: "Ja Morant",              id: 1629630    },
+      { name: "Trae Young",             id: 1629027    },
+      { name: "Zion Williamson",        id: 1629627    },
+      { name: "Devin Booker",           id: 1626164    },
+      { name: "Jalen Brunson",          id: 1628973    },
+    ],
+  },
+  // ── TIER 2  (value 8)  Star Players ──
+  {
+    label: "Star",
+    color: "#007a33",
+    players: [
+      { name: "Bam Adebayo",            id: 1628389    },
+      { name: "Pascal Siakam",          id: 1627783    },
+      { name: "Donovan Mitchell",       id: 1628378    },
+      { name: "Jimmy Butler",           id: 202710     },
+      { name: "Draymond Green",         id: 203110     },
+      { name: "Rudy Gobert",            id: 203497     },
+      { name: "Paul George",            id: 202331     },
+      { name: "De'Aaron Fox",           id: 1628368    },
+    ],
+  },
+  // ── TIER 3  (value 16)  Quality Starters ──
+  {
+    label: "Starter",
+    color: "#c8102e",
+    players: [
+      { name: "Tyler Herro",            id: 1629639    },
+      { name: "Jaren Jackson Jr.",      id: 1628991    },
+      { name: "Mikal Bridges",          id: 1628969    },
+      { name: "Tobias Harris",          id: 202699     },
+      { name: "CJ McCollum",            id: 203468     },
+      { name: "Fred VanVleet",          id: 1627832    },
+      { name: "Tyrese Haliburton",      id: 1630169    },
+      { name: "Brandon Ingram",         id: 1627742    },
+    ],
+  },
+  // ── TIER 4  (value 32)  Rotation Players ──
+  {
+    label: "Rotation",
+    color: "#f5821f",
+    players: [
+      { name: "Brook Lopez",            id: 201572     },
+      { name: "Derrick White",          id: 1628401    },
+      { name: "Evan Mobley",            id: 1630596    },
+      { name: "Franz Wagner",           id: 1630532    },
+      { name: "OG Anunoby",             id: 1628384    },
+      { name: "Darius Garland",         id: 1629636    },
+      { name: "RJ Barrett",             id: 1629628    },
+      { name: "Jordan Clarkson",        id: 203903     },
+    ],
+  },
+  // ── TIER 5  (value 64)  Bench Players ──
+  {
+    label: "Bench",
+    color: "#6f2da8",
+    players: [
+      { name: "Jordan Poole",           id: 1629673    },
+      { name: "Larry Nance Jr.",        id: 1626204    },
+      { name: "Naz Reid",               id: 1629675    },
+      { name: "Alex Caruso",            id: 1628960    },
+      { name: "Ivica Zubac",            id: 1627826    },
+      { name: "Bojan Bogdanovic",       id: 202711     },
+      { name: "Marcus Smart",           id: 203935     },
+      { name: "Gary Trent Jr.",         id: 1629020    },
+    ],
+  },
+  // ── TIER 6  (value 128)  Deep Bench ──
+  {
+    label: "Deep Bench",
+    color: "#007dc5",
+    players: [
+      { name: "Georges Niang",          id: 1627777    },
+      { name: "Taurean Prince",         id: 1627752    },
+      { name: "Duncan Robinson",        id: 1629130    },
+      { name: "Kyle Anderson",          id: 203937     },
+      { name: "Patrick Beverley",       id: 201976     },
+      { name: "Bradley Beal",           id: 203078     },
+      { name: "Jeff Green",             id: 201145     },
+      { name: "Khris Middleton",        id: 203114     },
+    ],
+  },
+  // ── TIER 7  (value 256)  Fringe Roster ──
+  {
+    label: "Fringe",
+    color: "#9ea1a2",
+    players: [
+      { name: "Bismack Biyombo",        id: 202687     },
+      { name: "Ish Smith",              id: 202397     },
+      { name: "Joe Ingles",             id: 204060     },
+      { name: "Malik Beasley",          id: 1627748    },
+      { name: "Isaiah Roby",            id: 1629663    },
+      { name: "Saben Lee",              id: 1630215    },
+      { name: "Trey Murphy III",        id: 1630530    },
+      { name: "Ochai Agbaji",           id: 1631117    },
+    ],
+  },
+  // ── TIER 8  (value 512)  Two-Way / End of Bench ──
+  {
+    label: "Two-Way",
+    color: "#8b4513",
+    players: [
+      { name: "Admiral Schofield",      id: 1629684    },
+      { name: "Tremont Waters",         id: 1629756    },
+      { name: "Leandro Bolmaro",        id: 1630190    },
+      { name: "Xavier Tillman",         id: 1630214    },
+      { name: "Theo Maledon",           id: 1630175    },
+      { name: "Braxton Key",            id: 1629741    },
+      { name: "Trevelin Queen",         id: 1630184    },
+      { name: "Mamadi Diakite",         id: 1630182    },
+    ],
+  },
+  // ── TIER 9  (value 1024)  Mystery Man ──
+  {
+    label: "Mystery",
+    color: "#444",
+    players: [
+      { name: "Charles Bassey",         id: 1630559    },
+      { name: "RaiQuan Gray",           id: 1630558    },
+      { name: "Gui Santos",             id: 1631110    },
+      { name: "Daishen Nix",            id: 1630603    },
+      { name: "Neemias Queta",          id: 1630602    },
+      { name: "Javonte Smart",          id: 1630220    },
+      { name: "Lester Quinones",        id: 1631109    },
+      { name: "Jordan Nwora",           id: 1630177    },
+    ],
+  },
+  // ── TIER 10 (value 2048)  Who?? ──
+  {
+    label: "Who??",
+    color: "#111",
+    players: [
+      { name: "Norvel Pelle",           id: 1629332    },
+      { name: "Josh Hall",              id: 1630280    },
+      { name: "Justin James",           id: 1629611    },
+      { name: "Garrison Mathews",       id: 1629719    },
+      { name: "Reggie Perry",           id: 1629720    },
+      { name: "Alize Johnson",          id: 1629155    },
+      { name: "Jamorko Pickett",        id: 1630587    },
+      { name: "Jalen McDaniels",        id: 1629632    },
+    ],
+  },
+];
+
+const VALUES    = TIERS.map((_, i) => Math.pow(2, i + 1));   // [2,4,8,...,2048]
+const MAX_TIER  = TIERS.length - 1;                           // 10
+const GRID_SIZE = 4;
+
+// ═══════════════════════════════════════════════════════
+// DAILY SEED  —  seeded RNG keyed to today's date
+// ═══════════════════════════════════════════════════════
+function dailySeed() {
+  const d = new Date();
+  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+}
+
+function makeRng(seed) {
+  let s = seed >>> 0;
+  return function () {
+    s ^= s << 13; s ^= s >>> 17; s ^= s << 5;
+    return (s >>> 0) / 0xffffffff;
+  };
+}
+
+function pickDailyPlayers() {
+  const rng = makeRng(dailySeed());
+  return TIERS.map(tier => {
+    const idx = Math.floor(rng() * tier.players.length);
+    return tier.players[idx];
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════
+let board;           // GRID_SIZE × GRID_SIZE  →  null | { tier, isNew, isMerged }
+let score;
+let bestScore;
+let dailyPlayers;
+let isGameOver;
+let hasWon;
+let keepPlaying;
+
+const SAVE_KEY_PREFIX = 'nba2048_day_';
+const BEST_KEY        = 'nba2048_best';
+
+function todayKey() {
+  return SAVE_KEY_PREFIX + dailySeed();
+}
+
+function saveGame() {
+  const state = {
+    board:       board,
+    score:       score,
+    hasWon:      hasWon,
+    isGameOver:  isGameOver,
+    keepPlaying: keepPlaying,
+  };
+  try {
+    localStorage.setItem(todayKey(), JSON.stringify(state));
+    localStorage.setItem(BEST_KEY, String(bestScore));
+  } catch (_) {}
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(todayKey());
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    board       = s.board;
+    score       = s.score;
+    hasWon      = s.hasWon;
+    isGameOver  = s.isGameOver;
+    keepPlaying = s.keepPlaying;
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+function startGame(forceNew = false) {
+  dailyPlayers = pickDailyPlayers();
+  bestScore    = parseInt(localStorage.getItem(BEST_KEY) || '0', 10);
+
+  if (!forceNew && loadGame()) {
+    // restored from save — just render
+  } else {
+    board       = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null));
+    score       = 0;
+    hasWon      = false;
+    isGameOver  = false;
+    keepPlaying = false;
+    spawnTile();
+    spawnTile();
+  }
+
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════════════
+// BOARD HELPERS
+// ═══════════════════════════════════════════════════════
+function spawnTile() {
+  const empty = [];
+  for (let r = 0; r < GRID_SIZE; r++)
+    for (let c = 0; c < GRID_SIZE; c++)
+      if (!board[r][c]) empty.push([r, c]);
+
+  if (!empty.length) return false;
+  const [r, c] = empty[Math.floor(Math.random() * empty.length)];
+  board[r][c] = { tier: Math.random() < 0.9 ? 0 : 1, isNew: true, isMerged: false };
+  return true;
+}
+
+function clearAnimFlags() {
+  for (let r = 0; r < GRID_SIZE; r++)
+    for (let c = 0; c < GRID_SIZE; c++)
+      if (board[r][c]) {
+        board[r][c].isNew    = false;
+        board[r][c].isMerged = false;
+      }
+}
+
+// ═══════════════════════════════════════════════════════
+// SLIDE LOGIC
+// ═══════════════════════════════════════════════════════
+function slideRow(row) {
+  // compact — remove nulls
+  const tiles = row.filter(Boolean).map(t => ({ ...t }));
+  let gained = 0;
+
+  // merge adjacent equal tiers
+  for (let i = 0; i < tiles.length - 1; i++) {
+    if (tiles[i].tier === tiles[i + 1].tier && tiles[i].tier < MAX_TIER) {
+      const newTier    = tiles[i].tier + 1;
+      gained          += VALUES[newTier];
+      tiles[i]         = { tier: newTier, isNew: false, isMerged: true };
+      tiles.splice(i + 1, 1);
+    }
+  }
+
+  // pad with nulls
+  while (tiles.length < GRID_SIZE) tiles.push(null);
+
+  // detect movement
+  const moved = row.some((orig, i) => {
+    const res = tiles[i];
+    if (!orig && !res)  return false;
+    if (!orig || !res)  return true;
+    return orig.tier !== res.tier;
+  });
+
+  return { result: tiles, gained, moved };
+}
+
+function transpose(b) {
+  return b[0].map((_, c) => b.map(row => row[c]));
+}
+
+function flipRows(b) {
+  return b.map(row => [...row].reverse());
+}
+
+function move(dir) {
+  if (isGameOver)           return false;
+  if (hasWon && !keepPlaying) return false;
+
+  clearAnimFlags();
+
+  // transform board so we always slide left
+  let work;
+  if      (dir === 'left')  work = board;
+  else if (dir === 'right') work = flipRows(board);
+  else if (dir === 'up')    work = transpose(board);
+  else                      work = flipRows(transpose(board));
+
+  let anyMoved = false;
+  let gained   = 0;
+  const next   = work.map(row => {
+    const { result, gained: g, moved } = slideRow(row);
+    if (moved) anyMoved = true;
+    gained += g;
+    return result;
+  });
+
+  if (!anyMoved) return false;
+
+  // reverse transform
+  if      (dir === 'left')  board = next;
+  else if (dir === 'right') board = flipRows(next);
+  else if (dir === 'up')    board = transpose(next);
+  else                      board = transpose(flipRows(next));
+
+  score += gained;
+  if (score > bestScore) {
+    bestScore = score;
+    try { localStorage.setItem(BEST_KEY, String(bestScore)); } catch (_) {}
+  }
+
+  spawnTile();
+
+  // win check
+  if (!hasWon) {
+    outer: for (let r = 0; r < GRID_SIZE; r++)
+      for (let c = 0; c < GRID_SIZE; c++)
+        if (board[r][c]?.tier === MAX_TIER) { hasWon = true; break outer; }
+  }
+
+  // game-over check
+  if (!canMove()) isGameOver = true;
+
+  saveGame();
+  renderAll();
+  return true;
+}
+
+function canMove() {
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      if (!board[r][c]) return true;
+      const t = board[r][c].tier;
+      if (c < GRID_SIZE - 1 && board[r][c + 1]?.tier === t) return true;
+      if (r < GRID_SIZE - 1 && board[r + 1]?.[c]?.tier  === t) return true;
+    }
+  }
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════
+function renderAll() {
+  renderBoard();
+  renderScores();
+  renderOverlays();
+  renderDailyLabel();
+}
+
+function renderBoard() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      const cell = board[r][c];
+      const el   = document.createElement('div');
+
+      if (!cell) {
+        el.className = 'cell';
+      } else {
+        const tier   = cell.tier;
+        const player = dailyPlayers[tier];
+        const value  = VALUES[tier];
+
+        el.className = `cell tile tier-${tier}`;
+        if (cell.isNew)    el.classList.add('anim-new');
+        if (cell.isMerged) el.classList.add('anim-merged');
+
+        // Photo wrapper
+        const photo = document.createElement('div');
+        photo.className = 'tile-photo';
+
+        const img = document.createElement('img');
+        img.loading = 'lazy';
+        img.alt     = player.name;
+        img.src     = `https://cdn.nba.com/headshots/nba/latest/260x190/${player.id}.png`;
+        img.onerror = function () {
+          this.remove();
+          const fb = document.createElement('div');
+          fb.className   = 'no-photo';
+          fb.textContent = '🏀';
+          photo.appendChild(fb);
+        };
+        photo.appendChild(img);
+
+        // Value badge
+        const badge = document.createElement('div');
+        badge.className   = 'tile-badge';
+        badge.textContent = value;
+        photo.appendChild(badge);
+
+        // Tier label (small, bottom-right of photo)
+        const tlabel = document.createElement('div');
+        tlabel.className   = 'tier-label';
+        tlabel.textContent = TIERS[tier].label;
+        photo.appendChild(tlabel);
+
+        // Player name bar
+        const nameBar = document.createElement('div');
+        nameBar.className   = 'tile-name';
+        nameBar.textContent = player.name;
+
+        el.appendChild(photo);
+        el.appendChild(nameBar);
+      }
+
+      boardEl.appendChild(el);
+    }
+  }
+}
+
+function renderScores() {
+  document.getElementById('score').textContent = score.toLocaleString();
+  document.getElementById('best').textContent  = bestScore.toLocaleString();
+}
+
+function renderOverlays() {
+  const winEl  = document.getElementById('overlay-win');
+  const loseEl = document.getElementById('overlay-lose');
+  winEl.classList.remove('show');
+  loseEl.classList.remove('show');
+
+  if (isGameOver) {
+    loseEl.classList.add('show');
+  } else if (hasWon && !keepPlaying) {
+    winEl.classList.add('show');
+  }
+}
+
+function renderDailyLabel() {
+  const opts = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+  const label = new Date().toLocaleDateString('en-US', opts);
+  document.getElementById('daily-label').textContent = '📅 ' + label;
+}
+
+function renderLegend() {
+  const legend = document.getElementById('legend');
+  TIERS.forEach((tier, i) => {
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+
+    const dot = document.createElement('div');
+    dot.className = 'legend-dot';
+    dot.style.background = tier.color;
+    dot.style.border = '1px solid rgba(0,0,0,0.2)';
+
+    const label = document.createElement('span');
+    label.textContent = `${VALUES[i]} – ${tier.label}`;
+
+    item.appendChild(dot);
+    item.appendChild(label);
+    legend.appendChild(item);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// INPUT — KEYBOARD
+// ═══════════════════════════════════════════════════════
+const KEY_MAP = {
+  ArrowLeft:  'left',
+  ArrowRight: 'right',
+  ArrowUp:    'up',
+  ArrowDown:  'down',
+  a: 'left', d: 'right', w: 'up', s: 'down',
+};
+
+document.addEventListener('keydown', e => {
+  const dir = KEY_MAP[e.key];
+  if (dir) {
+    e.preventDefault();
+    move(dir);
+  }
+});
+
+// ─── TOUCH / SWIPE ───
+let touchOrigin = null;
+
+document.addEventListener('touchstart', e => {
+  touchOrigin = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+}, { passive: true });
+
+document.addEventListener('touchend', e => {
+  if (!touchOrigin) return;
+  const dx = e.changedTouches[0].clientX - touchOrigin.x;
+  const dy = e.changedTouches[0].clientY - touchOrigin.y;
+  touchOrigin = null;
+
+  const THRESHOLD = 25;
+  if (Math.abs(dx) < THRESHOLD && Math.abs(dy) < THRESHOLD) return;
+
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    move(dx > 0 ? 'right' : 'left');
+  } else {
+    move(dy > 0 ? 'down' : 'up');
+  }
+}, { passive: true });
+
+// ═══════════════════════════════════════════════════════
+// BUTTON HANDLERS
+// ═══════════════════════════════════════════════════════
+document.getElementById('btn-new').addEventListener('click', () => {
+  if (confirm('Start a new game? Your current progress will be lost.')) {
+    startGame(true);
+  }
+});
+
+document.getElementById('btn-how').addEventListener('click', () => {
+  const el = document.getElementById('how-to');
+  el.classList.toggle('open');
+  document.getElementById('btn-how').textContent =
+    el.classList.contains('open') ? 'Hide Tips' : 'How to Play';
+});
+
+document.getElementById('btn-continue').addEventListener('click', () => {
+  keepPlaying = true;
+  renderOverlays();
+  saveGame();
+});
+
+document.getElementById('btn-retry').addEventListener('click', () => {
+  startGame(true);
+});
+
+// ═══════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════
+renderLegend();
+startGame();
+</script>
+</body>
+</html>
