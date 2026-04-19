@@ -218,12 +218,6 @@ input,button{font-family:inherit}
   /* reset user-select so input works */
   user-select:text;-webkit-user-select:text
 }
-.m-badge{
-  position:absolute;top:12px;right:12px;
-  background:var(--grid);color:#fff;
-  font-size:.58rem;font-weight:700;
-  padding:3px 9px;border-radius:3px;letter-spacing:.5px
-}
 .m-head{
   font-size:.62rem;font-weight:700;
   letter-spacing:2px;text-transform:uppercase;color:var(--btn)
@@ -295,13 +289,15 @@ input,button{font-family:inherit}
   flex:1;background:var(--acc);color:#fff;
   border:none;border-radius:var(--r);padding:10px;
   font-size:.88rem;font-weight:700;cursor:pointer;
-  transition:background .1s
+  transition:background .1s;
+  user-select:none;-webkit-user-select:none
 }
 .m-submit:hover{background:var(--acc-h)}
 .m-giveup{
   background:none;border:1px solid var(--grid);color:#b0a49a;
   border-radius:var(--r);padding:9px 14px;font-size:.78rem;cursor:pointer;
-  transition:color .1s,border-color .1s;white-space:nowrap;flex-shrink:0
+  transition:color .1s,border-color .1s;white-space:nowrap;flex-shrink:0;
+  user-select:none;-webkit-user-select:none
 }
 .m-giveup:hover{color:var(--text);border-color:var(--text)}
 .m-att{font-size:.72rem;color:#b0a49a;text-align:right;width:100%}
@@ -315,7 +311,8 @@ input,button{font-family:inherit}
   display:none;width:100%;background:var(--acc);color:#fff;
   border:none;border-radius:var(--r);padding:10px;
   font-size:.88rem;font-weight:700;cursor:pointer;
-  transition:background .1s
+  transition:background .1s;
+  user-select:none;-webkit-user-select:none
 }
 .m-continue.show{display:block}
 .m-continue:hover{background:var(--acc-h)}
@@ -422,7 +419,6 @@ input,button{font-family:inherit}
 <!-- GUESS MODAL -->
 <div class="modal-bg" id="modal">
   <div class="modal" id="modalCard">
-    <div class="m-badge" id="mBadge">NEW</div>
     <div class="m-head" id="mHead">🏀 New Player Unlocked</div>
     <div class="m-photo"><img id="mPhoto" src="" alt=""/></div>
     <div class="m-q">Who is this NBA player?</div>
@@ -437,12 +433,12 @@ input,button{font-family:inherit}
 
     <div class="m-hint" id="mHint">&nbsp;</div>
     <div class="m-actions">
-      <button class="m-submit" id="mSubmit">Submit Guess</button>
-      <button class="m-giveup" id="mGiveUp">Give Up</button>
+      <button type="button" class="m-submit" id="mSubmit">Submit Guess</button>
+      <button type="button" class="m-giveup" id="mGiveUp">Give Up</button>
     </div>
     <span class="m-att" id="mAtt">3 attempts left</span>
     <div class="m-reward" id="mReward"></div>
-    <button class="m-continue" id="mContinue">Continue →</button>
+    <button type="button" class="m-continue" id="mContinue">Continue →</button>
   </div>
 </div>
 
@@ -690,7 +686,6 @@ function openModal(tier){
   gActive=true;gTier=tier;gAttempts=0;
   const p=players[tier];
   // reset modal state
-  document.getElementById('mBadge').textContent=`${VALS[tier]} · ${TIERS[tier].label}`;
   document.getElementById('mHead').textContent='🏀 Who is this NBA player?';
   document.getElementById('mHint').textContent='\u00a0';
   document.getElementById('mHint').className='m-hint';
