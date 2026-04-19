@@ -287,9 +287,18 @@ input,button{font-family:inherit}
 .m-hint.wrong{color:var(--err);font-style:normal;font-weight:600}
 .m-hint.right{color:var(--ok);font-style:normal;font-weight:700}
 
+.m-submit{
+  width:100%;background:var(--acc);color:#fff;
+  border:none;border-radius:var(--r);padding:10px;
+  font-size:.88rem;font-weight:700;cursor:pointer;
+  transition:background .1s;
+  position:relative;z-index:1000
+}
+.m-submit:hover{background:var(--acc-h)}
 .m-meta{
   display:flex;justify-content:space-between;
-  align-items:center;width:100%
+  align-items:center;width:100%;
+  position:relative;z-index:1000
 }
 .m-att{font-size:.72rem;color:#b0a49a}
 .m-giveup{
@@ -301,14 +310,16 @@ input,button{font-family:inherit}
 .m-reward{
   display:none;background:#edcf72;border-radius:var(--r);
   padding:9px 14px;font-size:.8rem;font-weight:700;
-  color:#666;text-align:center;width:100%
+  color:#666;text-align:center;width:100%;
+  position:relative;z-index:1000
 }
 .m-reward.show{display:block}
 .m-continue{
   display:none;width:100%;background:var(--acc);color:#fff;
   border:none;border-radius:var(--r);padding:10px;
   font-size:.88rem;font-weight:700;cursor:pointer;
-  transition:background .1s
+  transition:background .1s;
+  position:relative;z-index:1000
 }
 .m-continue.show{display:block}
 .m-continue:hover{background:var(--acc-h)}
@@ -427,6 +438,8 @@ input,button{font-family:inherit}
         autocapitalize="off" spellcheck="false"/>
       <div class="ac-drop" id="acDrop"></div>
     </div>
+
+    <button class="m-submit" id="mSubmit">Submit Guess</button>
 
     <div class="m-hint" id="mHint">&nbsp;</div>
     <div class="m-meta">
@@ -690,6 +703,8 @@ function openModal(tier){
   document.getElementById('mReward').className='m-reward';
   document.getElementById('mContinue').className='m-continue';
   document.getElementById('mGiveUp').textContent='Give Up';
+  document.getElementById('mGiveUp').style.display='';
+  document.getElementById('mSubmit').style.display='';
   document.getElementById('mInput').value='';
   document.getElementById('mInput').className='m-input';
   closeAC();
@@ -756,6 +771,7 @@ function submitGuess(rawInput){
     document.getElementById('mReward').textContent=`🎉 ${rw} earned!`;
     document.getElementById('mReward').className='m-reward show';
     document.getElementById('mGiveUp').style.display='none';
+    document.getElementById('mSubmit').style.display='none';
     document.getElementById('mContinue').className='m-continue show';
     closeAC();save();renderPU();
   } else {
@@ -770,6 +786,7 @@ function submitGuess(rawInput){
       document.getElementById('mHint').className='m-hint wrong';
       document.getElementById('mAtt').textContent='No attempts left';
       document.getElementById('mGiveUp').style.display='none';
+      document.getElementById('mSubmit').style.display='none';
       document.getElementById('mContinue').className='m-continue show';
     } else {
       const hint=gAttempts===1
@@ -1027,8 +1044,8 @@ mInput.addEventListener('keydown',e=>{
   else if(e.key==='ArrowUp'){e.preventDefault();if(open)acMoveUp()}
   else if(e.key==='Enter'){
     e.preventDefault();
-    if(open&&acIdx>=0)selectAC(acIdx);
-    else submitGuess();
+    if(open&&acIdx>=0){selectAC(acIdx);}
+    else{closeAC();submitGuess();}
   } else if(e.key==='Escape'){
     e.preventDefault();
     if(open)closeAC();
@@ -1066,15 +1083,28 @@ document.getElementById('puUndo').addEventListener('click',useUndo);
 document.getElementById('puSwap').addEventListener('click',activateSwap);
 document.getElementById('puBomb').addEventListener('click',activateBomb);
 
+document.getElementById('mSubmit').addEventListener('click',()=>{
+  closeAC();
+  submitGuess();
+});
+
 document.getElementById('mGiveUp').addEventListener('click',()=>{
   const p=players[gTier];
   document.getElementById('mHint').textContent=`The player was ${p.name}`;
   document.getElementById('mHint').className='m-hint wrong';
   document.getElementById('mGiveUp').style.display='none';
+  document.getElementById('mSubmit').style.display='none';
   document.getElementById('mContinue').className='m-continue show';
   closeAC();
 });
 document.getElementById('mContinue').addEventListener('click',closeModal);
+
+// Close autocomplete when clicking outside the search box
+document.addEventListener('mousedown',e=>{
+  if(!e.target.closest('#mInput')&&!e.target.closest('#acDrop')){
+    closeAC();
+  }
+});
 
 // ═══════════════════════════════════════════════════════════════
 //  BOOT
