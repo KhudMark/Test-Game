@@ -238,26 +238,28 @@ input,button{font-family:inherit}
 .m-q{font-size:.96rem;font-weight:700;text-align:center}
 
 /* ── AUTOCOMPLETE SEARCH ── */
-.m-search{position:relative;width:100%}
+.m-search{width:100%}
 .m-input{
   width:100%;border:2px solid var(--grid);border-radius:var(--r);
   padding:10px 12px;font-size:.9rem;color:var(--text);
   background:#fff;outline:none;
   transition:border-color .1s;
-  /* CRITICAL: re-enable user interaction */
   user-select:text;-webkit-user-select:text;
   touch-action:auto;pointer-events:all
 }
 .m-input:focus{border-color:var(--acc)}
 .m-input.ok{border-color:var(--ok)}.m-input.err{border-color:var(--err)}
+/* visually connect input to open dropdown */
+.m-search:has(.ac-drop.open) .m-input{border-radius:var(--r) var(--r) 0 0}
 
+/* INLINE dropdown — no position:absolute, no z-index, pushes content down naturally */
 .ac-drop{
-  position:absolute;top:calc(100% + 2px);left:0;right:0;
-  background:#fff;border:2px solid var(--grid);
+  width:100%;
+  background:#fff;border:2px solid var(--grid);border-top:none;
   border-radius:0 0 var(--r) var(--r);
-  max-height:220px;overflow-y:auto;
-  z-index:999;display:none;
-  box-shadow:0 6px 18px rgba(0,0,0,.12);
+  max-height:200px;overflow-y:auto;
+  display:none;
+  box-shadow:0 4px 12px rgba(0,0,0,.1);
   touch-action:pan-y
 }
 .ac-drop.open{display:block}
@@ -287,39 +289,33 @@ input,button{font-family:inherit}
 .m-hint.wrong{color:var(--err);font-style:normal;font-weight:600}
 .m-hint.right{color:var(--ok);font-style:normal;font-weight:700}
 
+/* ── ACTION ROW ── */
+.m-actions{display:flex;gap:8px;width:100%;align-items:stretch}
 .m-submit{
-  width:100%;background:var(--acc);color:#fff;
+  flex:1;background:var(--acc);color:#fff;
   border:none;border-radius:var(--r);padding:10px;
   font-size:.88rem;font-weight:700;cursor:pointer;
-  transition:background .1s;
-  position:relative;z-index:1000
+  transition:background .1s
 }
 .m-submit:hover{background:var(--acc-h)}
-.m-meta{
-  display:flex;justify-content:space-between;
-  align-items:center;width:100%;
-  position:relative;z-index:1000
-}
-.m-att{font-size:.72rem;color:#b0a49a}
 .m-giveup{
   background:none;border:1px solid var(--grid);color:#b0a49a;
-  border-radius:4px;padding:4px 11px;font-size:.7rem;cursor:pointer;
-  transition:color .1s,border-color .1s
+  border-radius:var(--r);padding:9px 14px;font-size:.78rem;cursor:pointer;
+  transition:color .1s,border-color .1s;white-space:nowrap;flex-shrink:0
 }
 .m-giveup:hover{color:var(--text);border-color:var(--text)}
+.m-att{font-size:.72rem;color:#b0a49a;text-align:right;width:100%}
 .m-reward{
   display:none;background:#edcf72;border-radius:var(--r);
   padding:9px 14px;font-size:.8rem;font-weight:700;
-  color:#666;text-align:center;width:100%;
-  position:relative;z-index:1000
+  color:#666;text-align:center;width:100%
 }
 .m-reward.show{display:block}
 .m-continue{
   display:none;width:100%;background:var(--acc);color:#fff;
   border:none;border-radius:var(--r);padding:10px;
   font-size:.88rem;font-weight:700;cursor:pointer;
-  transition:background .1s;
-  position:relative;z-index:1000
+  transition:background .1s
 }
 .m-continue.show{display:block}
 .m-continue:hover{background:var(--acc-h)}
@@ -439,13 +435,12 @@ input,button{font-family:inherit}
       <div class="ac-drop" id="acDrop"></div>
     </div>
 
-    <button class="m-submit" id="mSubmit">Submit Guess</button>
-
     <div class="m-hint" id="mHint">&nbsp;</div>
-    <div class="m-meta">
-      <span class="m-att" id="mAtt">3 attempts left</span>
+    <div class="m-actions">
+      <button class="m-submit" id="mSubmit">Submit Guess</button>
       <button class="m-giveup" id="mGiveUp">Give Up</button>
     </div>
+    <span class="m-att" id="mAtt">3 attempts left</span>
     <div class="m-reward" id="mReward"></div>
     <button class="m-continue" id="mContinue">Continue →</button>
   </div>
