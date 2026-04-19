@@ -5,431 +5,540 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
 <title>NBA 2048</title>
 <style>
-/* ── EXACT 2048 PALETTE ── */
-:root{
-  --bg:#faf8ef;--text:#776e65;--grid:#bbada0;--empty:rgba(238,228,218,.35);
-  --btn:#8f7a66;--score-bg:#bbada0;--white:#f9f6f2;
-}
+/* ───────────────────────────────────────────────────────
+   RESET & BASE
+─────────────────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#faf8ef;--text:#776e65;--text-lt:#f9f6f2;
+  --grid:#bbada0;--empty:rgba(238,228,218,.35);
+  --btn:#8f7a66;--btn-h:#9f8070;
+  --acc:#f67c5f;--acc-h:#e56b4e;
+  --ok:#5aaa5a;--err:#d95f5f;
+  --shadow:0 4px 20px rgba(0,0,0,.18);
+  --r:6px;
+}
+html{height:100%}
 body{
-  background:var(--bg);font-family:"Clear Sans","Helvetica Neue",Arial,sans-serif;
-  color:var(--text);display:flex;justify-content:center;
-  padding:20px 12px 60px;min-height:100vh;touch-action:none;
-  -webkit-user-select:none;user-select:none;
+  background:var(--bg);
+  font-family:"Clear Sans","Helvetica Neue",Arial,sans-serif;
+  color:var(--text);
+  min-height:100%;
+  display:flex;justify-content:center;
+  padding:16px 10px 48px;
+  /* NOTE: touch-action and user-select are NOT set globally —
+     they would break the search input on mobile */
 }
-.wrap{width:100%;max-width:500px}
+input,button{font-family:inherit}
+/* only block selection on the game area itself */
+.game{
+  width:100%;max-width:500px;
+  user-select:none;-webkit-user-select:none;
+  touch-action:pan-y; /* allow vertical scroll but track swipes */
+}
 
-/* ── HEADER ── */
-.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
-.title{font-size:clamp(2.6rem,10vw,3.8rem);font-weight:700;color:var(--text);letter-spacing:-2px;line-height:1}
+/* ───────────────────────────────────────────────────────
+   HEADER
+─────────────────────────────────────────────────────── */
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.title{
+  font-size:clamp(2.4rem,9.5vw,3.4rem);font-weight:700;
+  color:var(--text);letter-spacing:-1.5px;line-height:1
+}
 .title .nba{color:#c9082a}
-.sub{font-size:.72rem;font-weight:600;opacity:.7;margin-top:3px}
-.scores{display:flex;gap:5px}
-.sb{background:var(--score-bg);border-radius:3px;padding:6px 14px;text-align:center;min-width:62px}
-.sb .lbl{font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#eee4da}
-.sb .val{font-size:1.3rem;font-weight:700;color:#fff}
+.sub{font-size:.7rem;font-weight:600;opacity:.7;margin-top:4px}
+.scores{display:flex;gap:5px;flex-shrink:0}
+.sb{
+  background:var(--grid);border-radius:var(--r);
+  padding:6px 13px;text-align:center;min-width:60px
+}
+.sb .lbl{font-size:.52rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#eee4da}
+.sb .val{font-size:1.25rem;font-weight:700;color:#fff;transition:transform .12s}
+.sb .val.bump{transform:scale(1.25)}
 
-/* ── CONTROLS ── */
-.ctrl{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-.daily{font-size:.76rem;font-weight:600}
-.btns{display:flex;gap:6px}
+/* ───────────────────────────────────────────────────────
+   CONTROLS BAR
+─────────────────────────────────────────────────────── */
+.ctrl{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.daily{font-size:.74rem;font-weight:600}
+.btns{display:flex;gap:5px}
 .btn{
-  background:var(--btn);color:var(--white);border:none;border-radius:3px;
-  padding:7px 14px;font:.75rem/1 inherit;font-weight:700;cursor:pointer;
-  transition:background .1s,transform .08s
+  background:var(--btn);color:var(--text-lt);border:none;
+  border-radius:var(--r);padding:7px 13px;
+  font-size:.74rem;font-weight:700;cursor:pointer;
+  transition:background .1s,transform .08s;line-height:1
 }
-.btn:hover{background:#9f8a76}.btn:active{transform:scale(.96)}
+.btn:hover{background:var(--btn-h)}.btn:active{transform:scale(.95)}
 
-/* ── BOARD ── */
-.bwrap{position:relative}
+/* ───────────────────────────────────────────────────────
+   BOARD
+─────────────────────────────────────────────────────── */
+.bwrap{position:relative;width:100%;touch-action:none}
 .board{
-  background:var(--grid);border-radius:6px;padding:clamp(9px,2.5vw,15px);
-  display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);
-  gap:clamp(9px,2.5vw,15px);aspect-ratio:1;width:100%
+  background:var(--grid);border-radius:8px;
+  padding:clamp(9px,2.3vw,13px);
+  display:grid;grid-template-columns:repeat(4,1fr);
+  grid-template-rows:repeat(4,1fr);
+  gap:clamp(9px,2.3vw,13px);aspect-ratio:1;width:100%
 }
-.cell{background:var(--empty);border-radius:3px}
+.cell{background:var(--empty);border-radius:4px}
 
 /* ── TILES ── */
-.tile{border-radius:3px;overflow:hidden;display:flex;flex-direction:column;position:relative}
-.t0 {background:#eee4da}.t1 {background:#ede0c8}.t2 {background:#f2b179}
-.t3 {background:#f59563}.t4 {background:#f67c5f}.t5 {background:#f65e3b}
-.t6 {background:#edcf72}.t7 {background:#edcc61}.t8 {background:#edc850}
-.t9 {background:#edc53f}.t10{background:#edc22e}
-
-.tphoto{flex:1;overflow:hidden;position:relative}
-.tphoto img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
-.tphoto .nophoto{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.8rem}
-.tval{
-  position:absolute;bottom:3px;right:4px;
-  font-size:clamp(.42rem,1.3vw,.6rem);font-weight:700;pointer-events:none;
-  text-shadow:0 1px 2px rgba(0,0,0,.4);
+.tile{
+  border-radius:4px;overflow:hidden;display:flex;
+  flex-direction:column;position:relative;
+  box-shadow:0 2px 6px rgba(0,0,0,.15);
 }
-.t0 .tval,.t1 .tval{color:#776e65;text-shadow:none}
-.t2 .tval,.t3 .tval,.t4 .tval,.t5 .tval,
-.t6 .tval,.t7 .tval,.t8 .tval,.t9 .tval,.t10 .tval{color:#f9f6f2}
+/* 2048-exact color palette */
+.t0{background:#eee4da}.t1{background:#ede0c8}.t2{background:#f2b179}
+.t3{background:#f59563}.t4{background:#f67c5f}.t5{background:#f65e3b}
+.t6{background:#edcf72}.t7{background:#edcc61}.t8{background:#edc850}
+.t9{background:#edc53f}.t10{background:#edc22e}
 
-/* bomb-mode: tiles pulse + crosshair */
-.bm .tile{cursor:crosshair;animation:pulse .7s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+.tile-img{
+  flex:1;overflow:hidden;position:relative;
+  background:#c8bfb8
+}
+.tile-img img{
+  width:100%;height:100%;
+  object-fit:cover;object-position:top center;display:block
+}
+.tile-img .fallback{
+  width:100%;height:100%;display:flex;
+  align-items:center;justify-content:center;font-size:1.6rem
+}
+/* gradient overlay so value badge is readable */
+.tile-img::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(transparent 55%,rgba(0,0,0,.55))
+}
+.tval{
+  position:absolute;bottom:3px;right:4px;z-index:1;
+  font-size:clamp(.42rem,1.2vw,.58rem);font-weight:800;
+  color:rgba(255,255,255,.92);text-shadow:0 1px 3px rgba(0,0,0,.6);
+  pointer-events:none;line-height:1
+}
+/* low tiers: light text on pale bg */
+.t0 .tval,.t1 .tval{color:#776e65;text-shadow:none}
+
+/* swap-mode: first selected tile */
+.tile.swap-sel{outline:3px solid #f67c5f;outline-offset:-3px}
+/* bomb/swap-mode: all tiles glow on hover */
+.bwrap.mode-bomb .tile,
+.bwrap.mode-swap  .tile{cursor:crosshair}
+.bwrap.mode-bomb .tile:hover,
+.bwrap.mode-swap  .tile:hover{
+  outline:3px solid rgba(255,255,255,.55);outline-offset:-3px;
+  filter:brightness(1.08)
+}
 
 /* ── TILE ANIMATIONS ── */
-@keyframes tappear{0%{transform:scale(0);opacity:0}60%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
-@keyframes tpop   {0%{transform:scale(1)}50%{transform:scale(1.18)}100%{transform:scale(1)}}
-.anew   {animation:tappear .17s ease forwards}
-.amerge {animation:tpop    .2s  ease forwards}
+@keyframes tapIn {0%{transform:scale(0);opacity:0}65%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+@keyframes tpop  {0%{transform:scale(1)}45%{transform:scale(1.15)}100%{transform:scale(1)}}
+.anew   {animation:tapIn .16s ease forwards}
+.amerge {animation:tpop  .18s ease forwards}
 
-/* ── GAME OVERLAYS ── */
+/* ── GAME OVERLAYS (win / lose) ── */
 .goverlay{
-  display:none;position:absolute;inset:0;background:rgba(250,248,239,.88);
-  border-radius:6px;flex-direction:column;align-items:center;justify-content:center;
-  z-index:20;gap:14px;padding:24px;text-align:center
+  display:none;position:absolute;inset:0;
+  background:rgba(250,248,239,.9);border-radius:8px;
+  flex-direction:column;align-items:center;justify-content:center;
+  z-index:20;gap:12px;padding:24px;text-align:center
 }
 .goverlay.show{display:flex}
-.ov-emoji{font-size:3.2rem}
-.ov-title{font-size:clamp(1.9rem,8vw,2.8rem);font-weight:700}
-.ov-body{font-size:.88rem;line-height:1.55;max-width:260px}
+.ov-ico{font-size:3rem}
+.ov-title{font-size:clamp(1.8rem,7.5vw,2.6rem);font-weight:700}
+.ov-body{font-size:.86rem;line-height:1.55;max-width:260px}
+
+/* ───────────────────────────────────────────────────────
+   POWER-UPS  (2048 Plus style)
+─────────────────────────────────────────────────────── */
+.pbar{display:flex;gap:8px;margin-top:11px}
+.pu{
+  flex:1;background:var(--grid);color:var(--text-lt);
+  border:none;border-radius:var(--r);padding:9px 6px 8px;
+  cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;gap:2px;
+  transition:background .12s,opacity .12s,transform .08s;
+  position:relative
+}
+.pu:active{transform:scale(.95)}
+.pu:hover:not(:disabled){background:#cbbfb3}
+.pu:disabled{opacity:.38;cursor:not-allowed;pointer-events:none}
+.pu.active{background:var(--acc);color:#fff}
+.pu.active:hover{background:var(--acc-h)}
+.pu-ico{font-size:1.3rem;line-height:1}
+.pu-lbl{font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;opacity:.85}
+.pu-cnt{font-size:.82rem;font-weight:700;line-height:1}
+/* unlock level badge (bottom-right of button) */
+.pu-lock{
+  position:absolute;bottom:5px;right:6px;
+  font-size:.5rem;opacity:.6
+}
 
 /* ── STATUS BAR ── */
 .status{
-  display:none;margin-top:8px;background:#f67c5f;color:#fff;
-  border-radius:4px;padding:7px 14px;font-size:.78rem;font-weight:700;text-align:center
+  display:none;margin-top:8px;
+  background:var(--acc);color:#fff;
+  border-radius:var(--r);padding:7px 14px;
+  font-size:.78rem;font-weight:700;text-align:center
 }
 .status.show{display:block}
 
-/* ── POWER-UPS ── */
-.pups{display:flex;gap:8px;margin-top:12px}
-.pu{
-  flex:1;background:var(--score-bg);color:var(--white);border:none;border-radius:4px;
-  padding:9px 6px;font:inherit;cursor:pointer;display:flex;align-items:center;
-  justify-content:center;gap:6px;transition:background .1s,opacity .15s;
-}
-.pu:hover:not(:disabled):not(.locked){background:#cbbfb3}
-.pu:disabled{opacity:.4;cursor:not-allowed}
-.pu.locked{opacity:.28;cursor:not-allowed}
-.pu.active{background:#e8b44f;color:#333}
-.pu-ico{font-size:1.15rem;line-height:1}
-.pu-txt{text-align:left}
-.pu-name{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;display:block}
-.pu-cnt{font-size:.9rem;font-weight:700;display:block;line-height:1}
-
-/* ── HOW TO PLAY ── */
+/* ───────────────────────────────────────────────────────
+   HOW TO PLAY
+─────────────────────────────────────────────────────── */
 .howto{
-  display:none;margin-top:12px;background:rgba(187,173,160,.2);
-  border-radius:5px;padding:14px 16px
+  display:none;margin-top:10px;
+  background:rgba(187,173,160,.18);
+  border-radius:var(--r);padding:14px 16px
 }
 .howto.open{display:block}
-.howto h3{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
-.howto p{font-size:.78rem;line-height:1.6;margin-bottom:5px}
+.howto h3{font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.howto p{font-size:.78rem;line-height:1.6;margin-bottom:6px}
 .howto strong{color:#554e48}
 
-/* ── GUESS MODAL ── */
-.mbg{
-  display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);
-  z-index:100;align-items:center;justify-content:center;padding:16px
+/* ───────────────────────────────────────────────────────
+   GUESS MODAL
+─────────────────────────────────────────────────────── */
+.modal-bg{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.68);z-index:200;
+  align-items:center;justify-content:center;padding:14px;
+  /* allow scroll on modal bg for small screens */
+  overflow-y:auto
 }
-.mbg.show{display:flex}
+.modal-bg.show{display:flex}
 .modal{
-  background:#faf8ef;border-radius:8px;padding:26px 22px 22px;width:100%;
-  max-width:370px;box-shadow:0 20px 60px rgba(0,0,0,.45);
-  display:flex;flex-direction:column;align-items:center;gap:13px;position:relative
+  background:#faf8ef;border-radius:10px;
+  padding:24px 20px 20px;width:100%;max-width:360px;
+  box-shadow:0 24px 70px rgba(0,0,0,.5);
+  display:flex;flex-direction:column;align-items:center;
+  gap:12px;position:relative;
+  /* reset user-select so input works */
+  user-select:text;-webkit-user-select:text
 }
-.mbadge{
-  position:absolute;top:12px;right:12px;background:var(--score-bg);color:#fff;
-  font-size:.6rem;font-weight:700;padding:3px 8px;border-radius:3px;letter-spacing:.5px
+.m-badge{
+  position:absolute;top:12px;right:12px;
+  background:var(--grid);color:#fff;
+  font-size:.58rem;font-weight:700;
+  padding:3px 9px;border-radius:3px;letter-spacing:.5px
 }
-.mhead{font-size:.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--btn)}
-.mpwrap{width:130px;height:130px;border-radius:6px;overflow:hidden;background:#bbb;box-shadow:0 4px 16px rgba(0,0,0,.25)}
-.mpwrap img{width:100%;height:100%;object-fit:cover;object-position:top center}
-.mpwrap .nophoto{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2.8rem}
-.mq{font-size:1rem;font-weight:700;text-align:center}
-.mhint{font-size:.78rem;color:#bbb;min-height:1.1em;text-align:center;font-style:italic}
-.mhint.wrong{color:#d95f5f}.mhint.right{color:#5aaa5a;font-weight:700;font-style:normal}
-.minput-row{display:flex;gap:8px;width:100%}
-.minput{
-  flex:1;border:2px solid #bbada0;border-radius:4px;padding:9px 11px;
-  font:.9rem/1 inherit;color:var(--text);background:#fff;outline:none;
-  transition:border-color .1s
+.m-head{
+  font-size:.62rem;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;color:var(--btn)
 }
-.minput:focus{border-color:#f67c5f}.minput.err{border-color:#d95f5f}.minput.ok{border-color:#5aaa5a}
-.msubmit{
-  background:#f67c5f;color:#fff;border:none;border-radius:4px;
-  padding:9px 15px;font:.82rem/1 inherit;font-weight:700;cursor:pointer;white-space:nowrap;
+.m-photo{
+  width:128px;height:128px;border-radius:8px;
+  overflow:hidden;background:#c8bfb8;
+  box-shadow:0 4px 18px rgba(0,0,0,.22);flex-shrink:0
+}
+.m-photo img{width:100%;height:100%;object-fit:cover;object-position:top}
+.m-photo .fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2.8rem}
+.m-q{font-size:.96rem;font-weight:700;text-align:center}
+
+/* ── AUTOCOMPLETE SEARCH ── */
+.m-search{position:relative;width:100%}
+.m-input{
+  width:100%;border:2px solid var(--grid);border-radius:var(--r);
+  padding:10px 12px;font-size:.9rem;color:var(--text);
+  background:#fff;outline:none;
+  transition:border-color .1s;
+  /* CRITICAL: re-enable user interaction */
+  user-select:text;-webkit-user-select:text;
+  touch-action:auto;pointer-events:all
+}
+.m-input:focus{border-color:var(--acc)}
+.m-input.ok{border-color:var(--ok)}.m-input.err{border-color:var(--err)}
+
+.ac-drop{
+  position:absolute;top:calc(100% + 2px);left:0;right:0;
+  background:#fff;border:2px solid var(--grid);
+  border-radius:0 0 var(--r) var(--r);
+  max-height:220px;overflow-y:auto;
+  z-index:999;display:none;
+  box-shadow:0 6px 18px rgba(0,0,0,.12);
+  touch-action:pan-y
+}
+.ac-drop.open{display:block}
+.ac-item{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 12px;cursor:pointer;
+  font-size:.86rem;color:var(--text);
+  border-bottom:1px solid rgba(187,173,160,.25);
+  transition:background .08s;
+  user-select:none
+}
+.ac-item:last-child{border-bottom:none}
+.ac-item:hover,.ac-item.hi{background:#f0ebe3}
+.ac-item img{
+  width:30px;height:30px;border-radius:50%;
+  object-fit:cover;object-position:top;
+  background:#ddd;flex-shrink:0
+}
+.ac-item .ac-name{font-weight:600;line-height:1.2}
+.ac-item .ac-name em{font-style:normal;color:var(--acc);font-weight:700}
+
+/* ── HINT / FEEDBACK ── */
+.m-hint{
+  font-size:.78rem;min-height:1.1em;text-align:center;
+  font-style:italic;color:#b0a49a;width:100%
+}
+.m-hint.wrong{color:var(--err);font-style:normal;font-weight:600}
+.m-hint.right{color:var(--ok);font-style:normal;font-weight:700}
+
+.m-meta{
+  display:flex;justify-content:space-between;
+  align-items:center;width:100%
+}
+.m-att{font-size:.72rem;color:#b0a49a}
+.m-giveup{
+  background:none;border:1px solid var(--grid);color:#b0a49a;
+  border-radius:4px;padding:4px 11px;font-size:.7rem;cursor:pointer;
+  transition:color .1s,border-color .1s
+}
+.m-giveup:hover{color:var(--text);border-color:var(--text)}
+.m-reward{
+  display:none;background:#edcf72;border-radius:var(--r);
+  padding:9px 14px;font-size:.8rem;font-weight:700;
+  color:#666;text-align:center;width:100%
+}
+.m-reward.show{display:block}
+.m-continue{
+  display:none;width:100%;background:var(--acc);color:#fff;
+  border:none;border-radius:var(--r);padding:10px;
+  font-size:.88rem;font-weight:700;cursor:pointer;
   transition:background .1s
 }
-.msubmit:hover{background:#e06650}.msubmit:disabled{opacity:.4;cursor:not-allowed}
-.mfooter{display:flex;justify-content:space-between;align-items:center;width:100%}
-.mattempts{font-size:.72rem;color:#aaa}
-.mskip{
-  background:none;border:1px solid #bbada0;color:#aaa;border-radius:4px;
-  padding:5px 12px;font:.7rem/1 inherit;cursor:pointer;transition:color .1s,border-color .1s
-}
-.mskip:hover{color:var(--text);border-color:var(--text)}
-.mreward{
-  display:none;background:#edcf72;border-radius:4px;padding:8px 14px;
-  font-size:.8rem;font-weight:700;color:#776e65;text-align:center;width:100%
-}
-.mreward.show{display:block}
+.m-continue.show{display:block}
+.m-continue:hover{background:var(--acc-h)}
 
-/* ── TOAST ── */
+/* ───────────────────────────────────────────────────────
+   TOAST
+─────────────────────────────────────────────────────── */
 .toast{
-  position:fixed;bottom:20px;left:50%;
-  transform:translateX(-50%) translateY(90px);
-  background:#776e65;color:#fff;padding:9px 20px;border-radius:20px;
-  font-weight:700;font-size:.82rem;z-index:300;transition:transform .28s ease;
-  pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center
+  position:fixed;bottom:18px;left:50%;
+  transform:translateX(-50%) translateY(80px);
+  background:#554e48;color:#fff;
+  padding:9px 20px;border-radius:20px;
+  font-weight:700;font-size:.8rem;
+  z-index:500;transition:transform .25s ease;
+  pointer-events:none;white-space:nowrap;
+  max-width:90vw;text-align:center
 }
 .toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ───────────────────────────────────────────────────────
+   RESPONSIVE TWEAKS
+─────────────────────────────────────────────────────── */
+@media(max-width:380px){
+  .pu-lbl{display:none}
+  .m-photo{width:110px;height:110px}
+}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="game">
 
+  <!-- HEADER -->
   <div class="hdr">
     <div>
       <div class="title"><span class="nba">NBA</span> 2048</div>
       <div class="sub">Daily NBA Knowledge Challenge</div>
     </div>
     <div class="scores">
-      <div class="sb"><div class="lbl">Score</div><div class="val" id="score">0</div></div>
-      <div class="sb"><div class="lbl">Best</div><div class="val"  id="best">0</div></div>
+      <div class="sb"><div class="lbl">Score</div><div class="val" id="elScore">0</div></div>
+      <div class="sb"><div class="lbl">Best</div><div class="val"  id="elBest">0</div></div>
     </div>
   </div>
 
+  <!-- CONTROLS -->
   <div class="ctrl">
-    <div class="daily" id="daily">📅 Daily Challenge</div>
+    <div class="daily" id="elDaily">📅 Daily Challenge</div>
     <div class="btns">
       <button class="btn" id="btnHow">How to Play</button>
       <button class="btn" id="btnNew">New Game</button>
     </div>
   </div>
 
-  <div class="bwrap">
+  <!-- BOARD -->
+  <div class="bwrap" id="bwrap">
     <div class="board" id="board"></div>
+
     <div class="goverlay" id="ovWin">
-      <div class="ov-emoji">🏆</div>
+      <div class="ov-ico">🏆</div>
       <div class="ov-title">You Won!</div>
-      <div class="ov-body">You navigated all the way to the most obscure player in the NBA. Legendary!</div>
+      <div class="ov-body">You merged all the way to the most obscure player in the league. Legendary!</div>
       <button class="btn" id="btnKeep">Keep Going</button>
     </div>
     <div class="goverlay" id="ovLose">
-      <div class="ov-emoji">😤</div>
+      <div class="ov-ico">😤</div>
       <div class="ov-title">Game Over</div>
       <div class="ov-body">No more moves. Come back tomorrow for a new daily lineup.</div>
       <button class="btn" id="btnRetry">Try Again</button>
     </div>
   </div>
 
+  <!-- STATUS BAR -->
   <div class="status" id="status"></div>
 
-  <div class="pups">
+  <!-- POWER-UPS -->
+  <div class="pbar">
     <button class="pu" id="puUndo">
       <span class="pu-ico">↩</span>
-      <div class="pu-txt"><span class="pu-name">Undo</span><span class="pu-cnt" id="cUndo">3</span></div>
+      <span class="pu-lbl">Undo</span>
+      <span class="pu-cnt" id="cUndo">2</span>
     </button>
-    <button class="pu locked" id="puBomb" title="Unlock at 64">
-      <span class="pu-ico">💣</span>
-      <div class="pu-txt"><span class="pu-name">Bomb</span><span class="pu-cnt" id="cBomb">🔒</span></div>
+    <button class="pu" id="puSwap">
+      <span class="pu-ico">⇄</span>
+      <span class="pu-lbl">Swap</span>
+      <span class="pu-cnt" id="cSwap">2</span>
     </button>
-    <button class="pu locked" id="puDbl" title="Unlock at 256">
-      <span class="pu-ico">⚡</span>
-      <div class="pu-txt"><span class="pu-name">Double</span><span class="pu-cnt" id="cDbl">🔒</span></div>
+    <button class="pu" id="puBomb">
+      <span class="pu-ico">💥</span>
+      <span class="pu-lbl">Bomb</span>
+      <span class="pu-cnt" id="cBomb">2</span>
     </button>
   </div>
 
+  <!-- HOW TO PLAY -->
   <div class="howto" id="howto">
     <h3>How to Play</h3>
-    <p><strong>Arrow keys</strong> or swipe to slide. Two identical tiles merge into the next tier.</p>
-    <p>Start with global icons (LeBron, Curry = <strong>2 tile</strong>). Merge them to unlock increasingly obscure players up to the <strong>2048 tile</strong>. No names shown — test your eye!</p>
-    <p>Each time you reach a <strong>new tile value</strong>, a popup asks you to name the player. Correct answers earn bonus power-ups.</p>
-    <p><strong>↩ Undo</strong> — revert last move &nbsp;|&nbsp; <strong>💣 Bomb</strong> (unlocks at 64) — remove any tile &nbsp;|&nbsp; <strong>⚡ Double</strong> (unlocks at 256) — make 2 moves before a new tile spawns.</p>
+    <p><strong>Arrow keys</strong> (or swipe) to slide. Matching tiles merge into the next tier.</p>
+    <p>Famous players are <strong>low value (2, 4)</strong>. Each merge produces a more obscure player — reach <strong>2048</strong> to win!</p>
+    <p><strong>No names shown.</strong> When a new tier is unlocked, you must identify the player to earn a power-up.</p>
+    <p><strong>↩ Undo</strong> — revert last move &nbsp;·&nbsp; <strong>⇄ Swap</strong> — swap any two tiles &nbsp;·&nbsp; <strong>💥 Bomb</strong> — remove a tile and its neighbors</p>
   </div>
-</div>
+
+</div><!-- .game -->
 
 <!-- GUESS MODAL -->
-<div class="mbg" id="modal">
-  <div class="modal">
-    <div class="mbadge" id="mbadge">NEW</div>
-    <div class="mhead">🏀 Who is this NBA player?</div>
-    <div class="mpwrap"><img id="mphoto" src="" alt=""/></div>
-    <div class="mq" id="mq">Identify the player to earn a power-up</div>
-    <div class="mhint" id="mhint">&nbsp;</div>
-    <div class="minput-row">
-      <input class="minput" id="minput" type="text" placeholder="Player name…" autocomplete="off" autocorrect="off" spellcheck="false"/>
-      <button class="msubmit" id="msubmit">Guess</button>
+<div class="modal-bg" id="modal">
+  <div class="modal" id="modalCard">
+    <div class="m-badge" id="mBadge">NEW</div>
+    <div class="m-head" id="mHead">🏀 New Player Unlocked</div>
+    <div class="m-photo"><img id="mPhoto" src="" alt=""/></div>
+    <div class="m-q">Who is this NBA player?</div>
+
+    <div class="m-search">
+      <input class="m-input" id="mInput" type="text"
+        placeholder="Search players…"
+        autocomplete="off" autocorrect="off"
+        autocapitalize="off" spellcheck="false"/>
+      <div class="ac-drop" id="acDrop"></div>
     </div>
-    <div class="mfooter">
-      <span class="mattempts" id="mattempts">3 attempts left</span>
-      <button class="mskip" id="mskip">Give Up</button>
+
+    <div class="m-hint" id="mHint">&nbsp;</div>
+    <div class="m-meta">
+      <span class="m-att" id="mAtt">3 attempts left</span>
+      <button class="m-giveup" id="mGiveUp">Give Up</button>
     </div>
-    <div class="mreward" id="mreward"></div>
+    <div class="m-reward" id="mReward"></div>
+    <button class="m-continue" id="mContinue">Continue →</button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
+<!-- Player database (for autocomplete) -->
+<script src="players.js"></script>
 <script>
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  PLAYER DATABASE  (11 tiers — faster niche ramp)
-//  Famous = low value  |  Obscure = high value
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ═══════════════════════════════════════════════════════════════
+//  TIER DATABASE  (11 tiers  2→2048)
+// ═══════════════════════════════════════════════════════════════
 const TIERS=[
-  /* 0 – 2 – Global Icons */
-  {label:"Global Icon",players:[
-    {name:"LeBron James",           id:2544},
-    {name:"Stephen Curry",          id:201939},
-    {name:"Kevin Durant",           id:201142},
-    {name:"Giannis Antetokounmpo",  id:203507},
-    {name:"Luka Doncic",            id:1629029},
-  ]},
-  /* 1 – 4 – Superstars */
-  {label:"Superstar",players:[
-    {name:"Nikola Jokic",           id:203999},
-    {name:"Joel Embiid",            id:203954},
-    {name:"Jayson Tatum",           id:1628369},
-    {name:"Shai Gilgeous-Alexander",id:1628983},
-    {name:"Ja Morant",              id:1629630},
-  ]},
-  /* 2 – 8 – All-Stars */
-  {label:"All-Star",players:[
-    {name:"Damian Lillard",         id:203081},
-    {name:"Anthony Davis",          id:203076},
-    {name:"Trae Young",             id:1629027},
-    {name:"Devin Booker",           id:1626164},
-    {name:"Jaylen Brown",           id:1627759},
-    {name:"Zion Williamson",        id:1629627},
-  ]},
-  /* 3 – 16 – Solid Starters (casual fans may not know) */
-  {label:"Starter",players:[
-    {name:"Bam Adebayo",            id:1628389},
-    {name:"Pascal Siakam",          id:1627783},
-    {name:"Donovan Mitchell",       id:1628378},
-    {name:"Jimmy Butler",           id:202710},
-    {name:"De'Aaron Fox",           id:1628368},
-    {name:"Jalen Brunson",          id:1628973},
-  ]},
-  /* 4 – 32 – Rotation Players (getting niche) */
-  {label:"Role Player",players:[
-    {name:"Mikal Bridges",          id:1628969},
-    {name:"Jaren Jackson Jr.",      id:1628991},
-    {name:"Tyler Herro",            id:1629639},
-    {name:"OG Anunoby",             id:1628384},
-    {name:"Franz Wagner",           id:1630532},
-    {name:"Tyrese Haliburton",      id:1630169},
-  ]},
-  /* 5 – 64 – Bench Contributors */
-  {label:"Bench",players:[
-    {name:"Darius Garland",         id:1629636},
-    {name:"RJ Barrett",             id:1629628},
-    {name:"Brook Lopez",            id:201572},
-    {name:"Evan Mobley",            id:1630596},
-    {name:"Fred VanVleet",          id:1627832},
-    {name:"Derrick White",          id:1628401},
-  ]},
-  /* 6 – 128 – Deep Bench */
-  {label:"Deep Bench",players:[
-    {name:"Jordan Poole",           id:1629673},
-    {name:"Naz Reid",               id:1629675},
-    {name:"Alex Caruso",            id:1628960},
-    {name:"Jordan Clarkson",        id:203903},
-    {name:"Ivica Zubac",            id:1627826},
-    {name:"Larry Nance Jr.",        id:1626204},
-  ]},
-  /* 7 – 256 – Fringe Roster */
-  {label:"Fringe",players:[
-    {name:"Duncan Robinson",        id:1629130},
-    {name:"Georges Niang",          id:1627777},
-    {name:"Taurean Prince",         id:1627752},
-    {name:"Bismack Biyombo",        id:202687},
-    {name:"Marcus Smart",           id:203935},
-    {name:"Kyle Anderson",          id:203937},
-  ]},
-  /* 8 – 512 – End of Roster */
-  {label:"End of Bench",players:[
-    {name:"Joe Ingles",             id:204060},
-    {name:"Ish Smith",              id:202397},
-    {name:"Isaiah Roby",            id:1629663},
-    {name:"Saben Lee",              id:1630215},
-    {name:"Gary Trent Jr.",         id:1629020},
-    {name:"Trey Murphy III",        id:1630530},
-  ]},
-  /* 9 – 1024 – Mystery */
-  {label:"Mystery",players:[
-    {name:"Admiral Schofield",      id:1629684},
-    {name:"Tremont Waters",         id:1629756},
-    {name:"Leandro Bolmaro",        id:1630190},
-    {name:"Xavier Tillman",         id:1630214},
-    {name:"Theo Maledon",           id:1630175},
-    {name:"Mamadi Diakite",         id:1630182},
-  ]},
-  /* 10 – 2048 – Who?? */
-  {label:"Who??",players:[
-    {name:"Norvel Pelle",           id:1629332},
-    {name:"Josh Hall",              id:1630280},
-    {name:"Justin James",           id:1629611},
-    {name:"Garrison Mathews",       id:1629719},
-    {name:"RaiQuan Gray",           id:1630558},
-    {name:"Braxton Key",            id:1629741},
-  ]},
+  {label:"Global Icon",  players:[{name:"LeBron James",id:2544},{name:"Stephen Curry",id:201939},{name:"Kevin Durant",id:201142},{name:"Giannis Antetokounmpo",id:203507},{name:"Luka Doncic",id:1629029}]},
+  {label:"Superstar",    players:[{name:"Nikola Jokic",id:203999},{name:"Joel Embiid",id:203954},{name:"Jayson Tatum",id:1628369},{name:"Shai Gilgeous-Alexander",id:1628983},{name:"Ja Morant",id:1629630}]},
+  {label:"All-Star",     players:[{name:"Damian Lillard",id:203081},{name:"Anthony Davis",id:203076},{name:"Trae Young",id:1629027},{name:"Devin Booker",id:1626164},{name:"Jaylen Brown",id:1627759},{name:"Zion Williamson",id:1629627}]},
+  {label:"Starter",      players:[{name:"Bam Adebayo",id:1628389},{name:"Pascal Siakam",id:1627783},{name:"Donovan Mitchell",id:1628378},{name:"Jimmy Butler",id:202710},{name:"De'Aaron Fox",id:1628368},{name:"Jalen Brunson",id:1628973}]},
+  {label:"Role Player",  players:[{name:"Mikal Bridges",id:1628969},{name:"Jaren Jackson Jr.",id:1628991},{name:"Tyler Herro",id:1629639},{name:"OG Anunoby",id:1628384},{name:"Franz Wagner",id:1630532},{name:"Tyrese Haliburton",id:1630169}]},
+  {label:"Bench",        players:[{name:"Darius Garland",id:1629636},{name:"RJ Barrett",id:1629628},{name:"Brook Lopez",id:201572},{name:"Evan Mobley",id:1630596},{name:"Fred VanVleet",id:1627832},{name:"Derrick White",id:1628401}]},
+  {label:"Deep Bench",   players:[{name:"Jordan Poole",id:1629673},{name:"Naz Reid",id:1629675},{name:"Alex Caruso",id:1628960},{name:"Jordan Clarkson",id:203903},{name:"Ivica Zubac",id:1627826},{name:"Larry Nance Jr.",id:1626204}]},
+  {label:"Fringe",       players:[{name:"Duncan Robinson",id:1629130},{name:"Georges Niang",id:1627777},{name:"Taurean Prince",id:1627752},{name:"Bismack Biyombo",id:202687},{name:"Marcus Smart",id:203935},{name:"Kyle Anderson",id:203937}]},
+  {label:"End of Bench", players:[{name:"Joe Ingles",id:204060},{name:"Ish Smith",id:202397},{name:"Isaiah Roby",id:1629663},{name:"Saben Lee",id:1630215},{name:"Gary Trent Jr.",id:1629020},{name:"Trey Murphy III",id:1630530}]},
+  {label:"Mystery",      players:[{name:"Admiral Schofield",id:1629684},{name:"Tremont Waters",id:1629756},{name:"Leandro Bolmaro",id:1630190},{name:"Xavier Tillman",id:1630214},{name:"Theo Maledon",id:1630175},{name:"Mamadi Diakite",id:1630182}]},
+  {label:"Who??",        players:[{name:"Norvel Pelle",id:1629332},{name:"Josh Hall",id:1630280},{name:"Justin James",id:1629611},{name:"Garrison Mathews",id:1629719},{name:"RaiQuan Gray",id:1630558},{name:"Braxton Key",id:1629741}]},
 ];
+const VALS=TIERS.map((_,i)=>1<<(i+1)); // [2,4,8,...,2048]
+const MAXT=TIERS.length-1;
+const G=4;
 
-const VALS   = TIERS.map((_,i)=>1<<(i+1)); // [2,4,8,...,2048]
-const MAXT   = TIERS.length-1;             // 10
-const G      = 4;
+// ═══════════════════════════════════════════════════════════════
+//  DAILY SEED  (deterministic per calendar day)
+// ═══════════════════════════════════════════════════════════════
+function todaySeed(){
+  const d=new Date();
+  return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();
+}
+function mkRng(s){
+  let n=s>>>0;
+  return()=>{n^=n<<13;n^=n>>>17;n^=n<<5;return(n>>>0)/0xffffffff};
+}
+function pickDailyPlayers(seed){
+  const r=mkRng(seed);
+  return TIERS.map(t=>t.players[Math.floor(r()*t.players.length)]);
+}
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  DAILY SEED
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function seed(){const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate()}
-function mkrng(s){let n=s>>>0;return()=>{n^=n<<13;n^=n>>>17;n^=n<<5;return(n>>>0)/0xffffffff}}
-function pickPlayers(){const r=mkrng(seed());return TIERS.map(t=>t.players[Math.floor(r()*t.players.length)])}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  STATE
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-let board,score,best,players;
+// ═══════════════════════════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════════════════════════
+let board,score,best,players,daySeed;
 let over,won,keepGoing,maxSeen;
-let pb,ps; // prev board/score for undo
-let pu={undo:3,bomb:0,dbl:0};
-let ul={bomb:false,dbl:false};
-let bombMode=false,dblLeft=0;
+let prevBoard,prevScore;
+let pu={undo:2,swap:2,bomb:2};
+// power-up mode state
+let mode=null;        // null | 'swap' | 'bomb'
+let swapFirst=null;   // {r,c} of first swap selection
+
 let gQueue=[],gActive=false,gTier=null,gAttempts=0;
 const MAX_ATT=3;
-const BK='nba2048v3_best';
-const SK=()=>'nba2048v3_'+seed();
+const BEST_K='nba2048_best';
+const SAVE_K=s=>'nba2048_save_'+s;
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  SAVE / LOAD
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ── save / load ──
 function save(){
-  try{localStorage.setItem(SK(),JSON.stringify({board,score,won,over,keepGoing,maxSeen,pu,ul}));
-      localStorage.setItem(BK,String(best))}catch(_){}
+  try{
+    localStorage.setItem(SAVE_K(daySeed),JSON.stringify({board,score,won,over,keepGoing,maxSeen,pu}));
+    localStorage.setItem(BEST_K,String(best));
+  }catch(_){}
 }
-function load(){
-  try{const s=JSON.parse(localStorage.getItem(SK())||'null');
+function load(seed){
+  try{
+    const s=JSON.parse(localStorage.getItem(SAVE_K(seed))||'null');
     if(!s)return false;
-    ({board,score,won,over,keepGoing,maxSeen,pu,ul}=s);return true}catch(_){return false}
+    ({board,score,won,over,keepGoing,maxSeen,pu}=s);
+    return true;
+  }catch(_){return false}
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  INIT
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function init(fresh=false){
-  players=pickPlayers();
-  best=parseInt(localStorage.getItem(BK)||'0',10);
-  if(!fresh&&load()){/* restored */}
+// ── init ──
+function init(forceNew=false){
+  daySeed=todaySeed();
+  players=pickDailyPlayers(daySeed);
+  best=parseInt(localStorage.getItem(BEST_K)||'0',10);
+
+  if(!forceNew&&load(daySeed)){/* restored */}
   else{
     board=Array.from({length:G},()=>Array(G).fill(null));
     score=0;won=false;over=false;keepGoing=false;maxSeen=1;
-    pu={undo:3,bomb:0,dbl:0};ul={bomb:false,dbl:false};
+    pu={undo:2,swap:2,bomb:2};
     spawn();spawn();
   }
-  gQueue=[];gActive=false;bombMode=false;dblLeft=0;pb=null;
+
+  gQueue=[];gActive=false;mode=null;swapFirst=null;
+  prevBoard=null;prevScore=0;
   render();
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ── midnight watcher ──
+let _watchTimer=setInterval(()=>{
+  const s=todaySeed();
+  if(s!==daySeed){clearInterval(_watchTimer);init(false)}
+},30000);
+
+// ═══════════════════════════════════════════════════════════════
 //  SPAWN
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ═══════════════════════════════════════════════════════════════
 function spawn(){
   const e=[];
   for(let r=0;r<G;r++)for(let c=0;c<G;c++)if(!board[r][c])e.push([r,c]);
@@ -438,9 +547,9 @@ function spawn(){
   board[r][c]={tier:Math.random()<.9?0:1,isNew:true,isM:false};
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  SLIDE
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ═══════════════════════════════════════════════════════════════
+//  SLIDE LOGIC
+// ═══════════════════════════════════════════════════════════════
 function slideRow(row){
   const ts=row.filter(Boolean).map(t=>({...t}));
   let pts=0;
@@ -451,13 +560,15 @@ function slideRow(row){
     }
   }
   while(ts.length<G)ts.push(null);
-  const moved=row.some((o,i)=>{const n=ts[i];if(!o&&!n)return false;if(!o||!n)return true;return o.tier!==n.tier});
+  const moved=row.some((o,i)=>{
+    const n=ts[i];
+    if(!o&&!n)return false;if(!o||!n)return true;return o.tier!==n.tier;
+  });
   return{result:ts,pts,moved};
 }
 const Tr=b=>b[0].map((_,c)=>b.map(r=>r[c]));
 const Fl=b=>b.map(r=>[...r].reverse());
-
-function doSlide(dir){
+function applySlide(dir){
   for(let r=0;r<G;r++)for(let c=0;c<G;c++)if(board[r][c]){board[r][c].isNew=false;board[r][c].isM=false}
   const w=dir==='left'?board:dir==='right'?Fl(board):dir==='up'?Tr(board):Fl(Tr(board));
   let moved=false,pts=0;
@@ -469,275 +580,505 @@ function doSlide(dir){
 }
 function canMove(){
   for(let r=0;r<G;r++)for(let c=0;c<G;c++){
-    if(!board[r][c])return true;const t=board[r][c].tier;
+    if(!board[r][c])return true;
+    const t=board[r][c].tier;
     if(c<G-1&&board[r][c+1]?.tier===t)return true;
     if(r<G-1&&board[r+1]?.[c]?.tier===t)return true;
   }return false;
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  MOVE
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ═══════════════════════════════════════════════════════════════
+//  MOVE HANDLER
+// ═══════════════════════════════════════════════════════════════
 function move(dir){
-  if(over||gActive||bombMode)return;
+  if(over||gActive||mode)return;
   if(won&&!keepGoing)return;
-  pb=board.map(r=>r.map(c=>c?{...c}:null));ps=score;
-  if(!doSlide(dir))return;
-  if(dblLeft>0){dblLeft--}else{spawn()}
-  checkUnlocks();
+  // save for undo
+  prevBoard=board.map(r=>r.map(c=>c?{...c}:null));
+  prevScore=score;
+  if(!applySlide(dir))return;
+  spawn();
+  checkNewTiers();
   if(!won)for(let r=0;r<G;r++)for(let c=0;c<G;c++)if(board[r][c]?.tier===MAXT)won=true;
   if(!canMove())over=true;
   save();render();
-  if(gQueue.length&&!gActive)setTimeout(()=>openModal(gQueue.shift()),420);
+  if(gQueue.length&&!gActive)setTimeout(()=>openModal(gQueue.shift()),380);
 }
 
-function checkUnlocks(){
+function checkNewTiers(){
   for(let r=0;r<G;r++)for(let c=0;c<G;c++){
     const t=board[r][c]?.tier??-1;
     if(t>maxSeen){
       for(let q=maxSeen+1;q<=t;q++)gQueue.push(q);
       maxSeen=t;
-      if(t>=5&&!ul.bomb){ul.bomb=true;pu.bomb++;toast('💣 Bomb unlocked!')}
-      if(t>=7&&!ul.dbl) {ul.dbl =true;pu.dbl++ ;toast('⚡ Double Move unlocked!')}
     }
   }
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ═══════════════════════════════════════════════════════════════
+//  POWER-UPS
+// ═══════════════════════════════════════════════════════════════
+function useUndo(){
+  if(pu.undo<=0||!prevBoard)return;
+  pu.undo--;board=prevBoard;score=prevScore;prevBoard=null;
+  save();render();toast('↩ Move undone');
+}
+
+function activateSwap(){
+  if(pu.swap<=0)return;
+  if(mode==='swap'){mode=null;swapFirst=null;renderBoard();renderPU();renderStatus();return}
+  mode='swap';swapFirst=null;
+  renderBoard();renderPU();renderStatus();
+  toast('⇄ Click first tile to swap');
+}
+
+function activateBomb(){
+  if(pu.bomb<=0)return;
+  if(mode==='bomb'){mode=null;renderBoard();renderPU();renderStatus();return}
+  mode='bomb';
+  renderBoard();renderPU();renderStatus();
+  toast('💥 Click a tile to bomb it');
+}
+
+function handleTileClick(r,c){
+  if(mode==='bomb'){
+    doBomb(r,c);
+  }else if(mode==='swap'){
+    doSwap(r,c);
+  }
+}
+
+function doBomb(r,c){
+  if(!board[r][c])return;
+  pu.bomb--;
+  // remove tile + all 8 neighbors
+  for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
+    const nr=r+dr,nc=c+dc;
+    if(nr>=0&&nr<G&&nc>=0&&nc<G)board[nr][nc]=null;
+  }
+  mode=null;save();render();toast('💥 Area cleared!');
+}
+
+function doSwap(r,c){
+  if(!board[r][c]&&!swapFirst)return; // don't pick empty tile first
+  if(!swapFirst){
+    swapFirst={r,c};
+    renderBoard();// re-render to show selection highlight
+    return;
+  }
+  if(swapFirst.r===r&&swapFirst.c===c){swapFirst=null;renderBoard();return}
+  // execute swap
+  pu.swap--;
+  const tmp=board[swapFirst.r][swapFirst.c];
+  board[swapFirst.r][swapFirst.c]=board[r][c];
+  board[r][c]=tmp;
+  swapFirst=null;mode=null;save();render();toast('⇄ Tiles swapped!');
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  GUESS MODAL
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ═══════════════════════════════════════════════════════════════
 function openModal(tier){
   gActive=true;gTier=tier;gAttempts=0;
   const p=players[tier];
-  document.getElementById('mbadge').textContent=`${VALS[tier]} — ${TIERS[tier].label}`;
-  document.getElementById('mhint').textContent='\u00a0';
-  document.getElementById('mhint').className='mhint';
-  document.getElementById('mattempts').textContent=`${MAX_ATT} attempts left`;
-  document.getElementById('mreward').className='mreward';
-  document.getElementById('minput').value='';
-  document.getElementById('minput').className='minput';
-  document.getElementById('msubmit').disabled=false;
-  document.getElementById('mskip').textContent='Give Up';
+  // reset modal state
+  document.getElementById('mBadge').textContent=`${VALS[tier]} · ${TIERS[tier].label}`;
+  document.getElementById('mHead').textContent='🏀 Who is this NBA player?';
+  document.getElementById('mHint').textContent='\u00a0';
+  document.getElementById('mHint').className='m-hint';
+  document.getElementById('mAtt').textContent=`${MAX_ATT} attempts left`;
+  document.getElementById('mReward').className='m-reward';
+  document.getElementById('mContinue').className='m-continue';
+  document.getElementById('mGiveUp').textContent='Give Up';
+  document.getElementById('mInput').value='';
+  document.getElementById('mInput').className='m-input';
+  closeAC();
 
-  const img=document.getElementById('mphoto');
+  // photo
+  const img=document.getElementById('mPhoto');
   img.style.display='block';
   img.src=`https://cdn.nba.com/headshots/nba/latest/1040x760/${p.id}.png`;
   img.onerror=function(){
     this.style.display='none';
-    let fb=this.parentElement.querySelector('.nophoto');
-    if(!fb){fb=document.createElement('div');fb.className='nophoto';fb.textContent='🏀';this.parentElement.appendChild(fb)}
+    let fb=this.parentElement.querySelector('.fallback');
+    if(!fb){fb=document.createElement('div');fb.className='fallback';fb.textContent='🏀';this.parentElement.appendChild(fb)}
     fb.style.display='flex';
   };
-  const fb=img.parentElement.querySelector('.nophoto');
+  const fb=img.parentElement.querySelector('.fallback');
   if(fb)fb.style.display='none';
 
   document.getElementById('modal').classList.add('show');
-  setTimeout(()=>document.getElementById('minput').focus(),100);
+  // slight delay before focus so mobile keyboard doesn't immediately cover photo
+  setTimeout(()=>{
+    const inp=document.getElementById('mInput');
+    inp.focus();
+  },200);
 }
 
 function closeModal(){
+  closeAC();
   document.getElementById('modal').classList.remove('show');
   gActive=false;gTier=null;
-  if(gQueue.length)setTimeout(()=>openModal(gQueue.shift()),300);
+  if(gQueue.length)setTimeout(()=>openModal(gQueue.shift()),280);
 }
 
-function isCorrect(input,name){
-  const n=s=>s.toLowerCase().replace(/[^a-z ]/g,'').trim();
-  const inp=n(input);if(inp.length<2)return false;
-  const full=n(name);const parts=full.split(' ');
-  const last=parts[parts.length-1];const first=parts[0];
-  return inp===full||inp===last||(inp===first&&inp.length>=3)||
-         (inp.length>=4&&full.includes(inp));
+// ── GUESS CHECK ──
+function normName(s){return s.toLowerCase().replace(/[^a-z ]/g,'').trim()}
+function isCorrect(input,playerName){
+  const inp=normName(input);
+  if(inp.length<2)return false;
+  const full=normName(playerName);
+  const parts=full.split(' ');
+  const last=parts[parts.length-1];
+  const first=parts[0];
+  return inp===full||inp===last||(inp===first&&inp.length>=3)||(inp.length>=4&&full.includes(inp));
 }
 
 function giveReward(tier){
-  if(tier<=2){pu.undo++;return'+1 Undo'}
-  if(tier<=5){if(ul.bomb){pu.bomb++;return'+1 Bomb'}pu.undo++;return'+1 Undo'}
-  if(ul.dbl){pu.dbl++;return'+1 Double Move'}
-  if(ul.bomb){pu.bomb++;return'+1 Bomb'}
-  pu.undo++;return'+1 Undo';
+  // low tier → undo, mid → swap, high → bomb
+  if(tier<=2){pu.undo++;return'+1 Undo (↩)'}
+  if(tier<=5){pu.swap++;return'+1 Swap (⇄)'}
+  pu.bomb++;return'+1 Bomb (💥)';
 }
 
-function submitGuess(){
+function submitGuess(rawInput){
   if(!gActive)return;
-  const inp=document.getElementById('minput').value.trim();
+  const inp=(rawInput!==undefined?rawInput:document.getElementById('mInput').value).trim();
+  if(!inp)return;
   const p=players[gTier];
+
   if(isCorrect(inp,p.name)){
-    document.getElementById('minput').className='minput ok';
-    document.getElementById('mhint').textContent=`✓ Correct! It's ${p.name}`;
-    document.getElementById('mhint').className='mhint right';
+    // ── CORRECT ──
+    document.getElementById('mInput').className='m-input ok';
+    document.getElementById('mHint').textContent=`✓ Correct! It's ${p.name}`;
+    document.getElementById('mHint').className='m-hint right';
     const rw=giveReward(gTier);
-    document.getElementById('mreward').textContent=`🎉 ${rw} earned!`;
-    document.getElementById('mreward').className='mreward show';
-    document.getElementById('msubmit').disabled=true;
-    document.getElementById('mskip').textContent='Continue →';
-    save();renderPU();
+    document.getElementById('mReward').textContent=`🎉 ${rw} earned!`;
+    document.getElementById('mReward').className='m-reward show';
+    document.getElementById('mGiveUp').style.display='none';
+    document.getElementById('mContinue').className='m-continue show';
+    closeAC();save();renderPU();
   } else {
+    // ── WRONG ──
     gAttempts++;
-    document.getElementById('minput').className='minput err';
-    document.getElementById('minput').value='';
+    document.getElementById('mInput').className='m-input err';
+    document.getElementById('mInput').value='';
+    closeAC();
     const left=MAX_ATT-gAttempts;
     if(left<=0){
-      document.getElementById('mhint').textContent=`It was ${p.name}`;
-      document.getElementById('mhint').className='mhint wrong';
-      document.getElementById('mattempts').textContent='No attempts left';
-      document.getElementById('msubmit').disabled=true;
-      document.getElementById('mskip').textContent='Continue →';
+      document.getElementById('mHint').textContent=`The player was ${p.name}`;
+      document.getElementById('mHint').className='m-hint wrong';
+      document.getElementById('mAtt').textContent='No attempts left';
+      document.getElementById('mGiveUp').style.display='none';
+      document.getElementById('mContinue').className='m-continue show';
     } else {
       const hint=gAttempts===1
         ?`Hint: First name starts with "${p.name[0]}"`
-        :`Hint: Last name — "${p.name.split(' ').slice(-1)[0]}"`;
-      document.getElementById('mhint').textContent=hint;
-      document.getElementById('mhint').className='mhint wrong';
-      document.getElementById('mattempts').textContent=`${left} attempt${left>1?'s':''} left`;
+        :`Hint: Last name starts with "${p.name.split(' ').pop()[0]}"`;
+      document.getElementById('mHint').textContent=hint;
+      document.getElementById('mHint').className='m-hint wrong';
+      document.getElementById('mAtt').textContent=`${left} attempt${left>1?'s':''} left`;
     }
   }
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ═══════════════════════════════════════════════════════════════
+//  AUTOCOMPLETE
+// ═══════════════════════════════════════════════════════════════
+let acResults=[],acIdx=-1;
+
+function updateAC(val){
+  const q=val.trim().toLowerCase();
+  if(q.length<2){closeAC();return}
+  const ql=q.toLowerCase();
+  acResults=(typeof NBA_PLAYERS!=='undefined'?NBA_PLAYERS:[])
+    .filter(p=>{
+      const fn=p.fn.toLowerCase(),ln=p.ln.toLowerCase(),full=p.full.toLowerCase();
+      return fn.startsWith(ql)||ln.startsWith(ql)||full.includes(ql);
+    })
+    .sort((a,b)=>{
+      const aF=a.full.toLowerCase(),bF=b.full.toLowerCase();
+      const aS=aF.startsWith(ql)?0:1,bS=bF.startsWith(ql)?0:1;
+      // active players first
+      const actDiff=(b.active||0)-(a.active||0);
+      return actDiff||aS-bS||aF.localeCompare(bF);
+    })
+    .slice(0,8);
+  renderAC(ql);
+}
+
+function renderAC(ql){
+  const drop=document.getElementById('acDrop');
+  drop.innerHTML='';
+  acIdx=-1;
+  if(!acResults.length){drop.classList.remove('open');return}
+
+  acResults.forEach((p,i)=>{
+    const item=document.createElement('div');
+    item.className='ac-item';
+    item.dataset.i=i;
+
+    // thumbnail
+    if(p.id){
+      const img=document.createElement('img');
+      img.src=`https://cdn.nba.com/headshots/nba/latest/260x190/${p.id}.png`;
+      img.alt='';
+      img.onerror=function(){this.style.visibility='hidden'};
+      item.appendChild(img);
+    }
+
+    // name with highlighted match
+    const span=document.createElement('span');
+    span.className='ac-name';
+    const full=p.full;
+    const lo=full.toLowerCase();
+    const idx=lo.indexOf(ql);
+    if(idx>=0&&ql){
+      span.innerHTML=
+        esc(full.slice(0,idx))+
+        '<em>'+esc(full.slice(idx,idx+ql.length))+'</em>'+
+        esc(full.slice(idx+ql.length));
+    } else {
+      span.textContent=full;
+    }
+    item.appendChild(span);
+
+    // mousedown (not click) so it fires before blur on input
+    item.addEventListener('mousedown',e=>{
+      e.preventDefault();
+      selectAC(i);
+    });
+    // touch select
+    item.addEventListener('touchend',e=>{
+      e.preventDefault();
+      selectAC(i);
+    },{passive:false});
+
+    drop.appendChild(item);
+  });
+  drop.classList.add('open');
+}
+
+function selectAC(i){
+  const p=acResults[i];
+  if(!p)return;
+  document.getElementById('mInput').value=p.full;
+  closeAC();
+  submitGuess(p.full);
+}
+
+function closeAC(){
+  document.getElementById('acDrop').classList.remove('open');
+  acResults=[];acIdx=-1;
+}
+
+function acMoveDown(){
+  acIdx=Math.min(acIdx+1,acResults.length-1);
+  hiliteAC();
+}
+function acMoveUp(){
+  acIdx=Math.max(acIdx-1,-1);
+  hiliteAC();
+}
+function hiliteAC(){
+  document.querySelectorAll('#acDrop .ac-item').forEach((el,i)=>{
+    el.classList.toggle('hi',i===acIdx);
+    if(i===acIdx)el.scrollIntoView({block:'nearest'});
+  });
+}
+
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+// ═══════════════════════════════════════════════════════════════
 //  RENDER
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ═══════════════════════════════════════════════════════════════
 function render(){renderBoard();renderScore();renderPU();renderOverlay();renderDaily();renderStatus()}
 
 function renderBoard(){
   const el=document.getElementById('board');
+  const bw=document.getElementById('bwrap');
   el.innerHTML='';
-  el.className='board'+(bombMode?' bm':'');
-  for(let r=0;r<G;r++)for(let c=0;c<G;c++){
-    const cell=board[r][c];
-    const d=document.createElement('div');
-    if(!cell){d.className='cell'}
-    else{
-      const t=cell.tier;
-      d.className=`cell tile t${t}`;
-      if(cell.isNew)d.classList.add('anew');
-      if(cell.isM)  d.classList.add('amerge');
-      const ph=document.createElement('div');ph.className='tphoto';
-      const img=document.createElement('img');
-      img.loading='lazy';img.alt='';
-      img.src=`https://cdn.nba.com/headshots/nba/latest/260x190/${players[t].id}.png`;
-      img.onerror=function(){
-        this.remove();
-        const fb=document.createElement('div');fb.className='nophoto';fb.textContent='🏀';ph.appendChild(fb);
-      };
-      ph.appendChild(img);
-      const vd=document.createElement('div');vd.className='tval';vd.textContent=VALS[t];
-      ph.appendChild(vd);
-      d.appendChild(ph);
-      if(bombMode){
-        const rc=[r,c];
-        d.addEventListener('click',()=>doBomb(...rc),{once:true});
+  // mode class on wrapper (for CSS hover effects)
+  bw.className='bwrap'+(mode?' mode-'+mode:'');
+
+  for(let r=0;r<G;r++){
+    for(let c=0;c<G;c++){
+      const cell=board[r][c];
+      const d=document.createElement('div');
+      if(!cell){
+        d.className='cell';
+      } else {
+        const t=cell.tier;
+        d.className=`cell tile t${t}`;
+        if(cell.isNew)d.classList.add('anew');
+        if(cell.isM)  d.classList.add('amerge');
+        // swap selection highlight
+        if(mode==='swap'&&swapFirst&&swapFirst.r===r&&swapFirst.c===c)
+          d.classList.add('swap-sel');
+
+        const pi=document.createElement('div');pi.className='tile-img';
+        const img=document.createElement('img');
+        img.loading='lazy';img.alt='';
+        img.src=`https://cdn.nba.com/headshots/nba/latest/260x190/${players[t].id}.png`;
+        img.onerror=function(){
+          this.remove();
+          const fb=document.createElement('div');fb.className='fallback';
+          fb.textContent='🏀';pi.appendChild(fb);
+        };
+        pi.appendChild(img);
+        const vd=document.createElement('div');vd.className='tval';vd.textContent=VALS[t];
+        pi.appendChild(vd);
+        d.appendChild(pi);
+
+        if(mode){
+          const rc=[r,c];
+          d.addEventListener('click',()=>handleTileClick(...rc),{once:true});
+        }
       }
+      el.appendChild(d);
     }
-    el.appendChild(d);
   }
 }
+
 function renderScore(){
-  document.getElementById('score').textContent=score.toLocaleString();
-  document.getElementById('best').textContent =best.toLocaleString();
+  const sv=document.getElementById('elScore');
+  const bv=document.getElementById('elBest');
+  const prev=parseInt(sv.textContent.replace(/,/g,'')||'0',10);
+  sv.textContent=score.toLocaleString();
+  bv.textContent=best.toLocaleString();
+  if(score>prev){sv.classList.add('bump');setTimeout(()=>sv.classList.remove('bump'),150)}
 }
+
 function renderPU(){
-  const ub=document.getElementById('puUndo');
+  const setBtn=(id,cnt)=>{
+    const b=document.getElementById(id);
+    b.disabled=cnt<=0;
+    b.classList.toggle('active',
+      (id==='puSwap'&&mode==='swap')||(id==='puBomb'&&mode==='bomb'));
+  };
   document.getElementById('cUndo').textContent=pu.undo;
-  ub.disabled=pu.undo===0;ub.classList.remove('locked');
-  const bb=document.getElementById('puBomb');
-  if(ul.bomb){bb.classList.remove('locked');bb.disabled=pu.bomb===0;document.getElementById('cBomb').textContent=pu.bomb;bb.classList.toggle('active',bombMode)}
-  else{bb.classList.add('locked');bb.disabled=true;document.getElementById('cBomb').textContent='🔒'}
-  const db=document.getElementById('puDbl');
-  if(ul.dbl){db.classList.remove('locked');db.disabled=pu.dbl===0;document.getElementById('cDbl').textContent=pu.dbl;db.classList.toggle('active',dblLeft>0)}
-  else{db.classList.add('locked');db.disabled=true;document.getElementById('cDbl').textContent='🔒'}
+  document.getElementById('cSwap').textContent=pu.swap;
+  document.getElementById('cBomb').textContent=pu.bomb;
+  setBtn('puUndo',pu.undo);
+  setBtn('puSwap',pu.swap);
+  setBtn('puBomb',pu.bomb);
 }
+
 function renderOverlay(){
   document.getElementById('ovWin').classList.toggle('show',won&&!keepGoing);
   document.getElementById('ovLose').classList.toggle('show',over);
 }
+
 function renderDaily(){
-  document.getElementById('daily').textContent='📅 '+new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  document.getElementById('elDaily').textContent='📅 '+
+    new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
 }
+
 function renderStatus(){
   const s=document.getElementById('status');
-  if(bombMode){s.textContent='💣 Click any tile to destroy it  ·  ESC to cancel';s.classList.add('show')}
-  else if(dblLeft>0){s.textContent='⚡ Double Move active — next move free!';s.classList.add('show')}
-  else{s.classList.remove('show')}
+  if(mode==='bomb'){
+    s.textContent='💥 Click any tile to bomb it (removes tile + neighbors)  ·  Press ESC to cancel';
+    s.classList.add('show');
+  } else if(mode==='swap'&&!swapFirst){
+    s.textContent='⇄ Click first tile to swap  ·  ESC to cancel';
+    s.classList.add('show');
+  } else if(mode==='swap'&&swapFirst){
+    s.textContent='⇄ Now click the second tile  ·  ESC to cancel';
+    s.classList.add('show');
+  } else {
+    s.classList.remove('show');
+  }
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  POWER-UP ACTIONS
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function useUndo(){
-  if(pu.undo<=0||!pb)return;
-  pu.undo--;board=pb;score=ps;pb=null;save();render();toast('↩ Move undone');
-}
-function toggleBomb(){
-  if(!ul.bomb||pu.bomb<=0)return;
-  bombMode=!bombMode;
-  if(bombMode)toast('💣 Click a tile to destroy it');
-  renderBoard();renderPU();renderStatus();
-}
-function doBomb(r,c){
-  if(!bombMode)return;
-  pu.bomb--;board[r][c]=null;bombMode=false;
-  save();render();toast('💣 Tile destroyed!');
-}
-function useDouble(){
-  if(!ul.dbl||pu.dbl<=0)return;
-  pu.dbl--;dblLeft=1;renderPU();renderStatus();toast('⚡ Double Move active!');
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ═══════════════════════════════════════════════════════════════
 //  TOAST
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-let toastT;
+// ═══════════════════════════════════════════════════════════════
+let _toastT;
 function toast(msg){
-  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
-  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2300);
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(_toastT);_toastT=setTimeout(()=>t.classList.remove('show'),2400);
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  INPUT
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const KEYS={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',
-            a:'left',d:'right',w:'up',s:'down'};
+// ═══════════════════════════════════════════════════════════════
+//  INPUT — KEYBOARD  (CRITICAL: guard prevents swallowing typing)
+// ═══════════════════════════════════════════════════════════════
+const MOVE_KEYS={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'};
+
 document.addEventListener('keydown',e=>{
-  if(KEYS[e.key]){e.preventDefault();move(KEYS[e.key])}
-  if(e.key==='Escape'&&bombMode){bombMode=false;renderBoard();renderPU();renderStatus()}
+  // ── DO NOT intercept keys when user is typing in any input ──
+  const tag=document.activeElement?.tagName;
+  if(tag==='INPUT'||tag==='TEXTAREA')return;
+
+  if(e.key==='Escape'){
+    if(mode){mode=null;swapFirst=null;renderBoard();renderPU();renderStatus()}
+    return;
+  }
+  const dir=MOVE_KEYS[e.key];
+  if(dir){e.preventDefault();move(dir)}
+},true);// capture phase
+
+// Modal input: dedicated handler so arrow keys navigate autocomplete
+const mInput=document.getElementById('mInput');
+mInput.addEventListener('keydown',e=>{
+  e.stopPropagation(); // CRITICAL: stop game from seeing these
+  const open=document.getElementById('acDrop').classList.contains('open');
+  if(e.key==='ArrowDown'){e.preventDefault();if(open)acMoveDown()}
+  else if(e.key==='ArrowUp'){e.preventDefault();if(open)acMoveUp()}
+  else if(e.key==='Enter'){
+    e.preventDefault();
+    if(open&&acIdx>=0)selectAC(acIdx);
+    else submitGuess();
+  } else if(e.key==='Escape'){
+    e.preventDefault();
+    if(open)closeAC();
+  }
 });
-let t0=null;
-document.addEventListener('touchstart',e=>{t0={x:e.touches[0].clientX,y:e.touches[0].clientY}},{passive:true});
-document.addEventListener('touchend',e=>{
-  if(!t0)return;const dx=e.changedTouches[0].clientX-t0.x,dy=e.changedTouches[0].clientY-t0.y;t0=null;
-  if(Math.abs(dx)<25&&Math.abs(dy)<25)return;
+mInput.addEventListener('input',()=>updateAC(mInput.value));
+
+// ── SWIPE ──
+let _t0=null;
+const bwrap=document.getElementById('bwrap');
+bwrap.addEventListener('touchstart',e=>{
+  if(e.touches.length===1)_t0={x:e.touches[0].clientX,y:e.touches[0].clientY};
+},{passive:true});
+bwrap.addEventListener('touchend',e=>{
+  if(!_t0)return;
+  const dx=e.changedTouches[0].clientX-_t0.x;
+  const dy=e.changedTouches[0].clientY-_t0.y;
+  _t0=null;
+  if(Math.abs(dx)<28&&Math.abs(dy)<28)return;
   Math.abs(dx)>Math.abs(dy)?move(dx>0?'right':'left'):move(dy>0?'down':'up');
 },{passive:true});
 
-document.getElementById('btnNew').addEventListener('click',()=>{if(confirm('Start fresh? Progress will be lost.'))init(true)});
+// ── BUTTON WIRING ──
+document.getElementById('btnNew').addEventListener('click',()=>{
+  if(confirm('Start a new game? Current progress will be lost.'))init(true);
+});
 document.getElementById('btnHow').addEventListener('click',()=>{
   const h=document.getElementById('howto');h.classList.toggle('open');
   document.getElementById('btnHow').textContent=h.classList.contains('open')?'Hide Tips':'How to Play';
 });
 document.getElementById('btnKeep').addEventListener('click',()=>{keepGoing=true;save();renderOverlay()});
 document.getElementById('btnRetry').addEventListener('click',()=>init(true));
+
 document.getElementById('puUndo').addEventListener('click',useUndo);
-document.getElementById('puBomb').addEventListener('click',toggleBomb);
-document.getElementById('puDbl').addEventListener('click',useDouble);
+document.getElementById('puSwap').addEventListener('click',activateSwap);
+document.getElementById('puBomb').addEventListener('click',activateBomb);
 
-document.getElementById('msubmit').addEventListener('click',submitGuess);
-document.getElementById('minput').addEventListener('keydown',e=>{if(e.key==='Enter')submitGuess()});
-document.getElementById('mskip').addEventListener('click',()=>{
-  const btn=document.getElementById('mskip');
-  if(btn.textContent.includes('Continue')){closeModal()}
-  else{
-    const p=players[gTier];
-    document.getElementById('mhint').textContent=`It was ${p.name}`;
-    document.getElementById('mhint').className='mhint wrong';
-    document.getElementById('msubmit').disabled=true;
-    btn.textContent='Continue →';
-  }
+document.getElementById('mGiveUp').addEventListener('click',()=>{
+  const p=players[gTier];
+  document.getElementById('mHint').textContent=`The player was ${p.name}`;
+  document.getElementById('mHint').className='m-hint wrong';
+  document.getElementById('mGiveUp').style.display='none';
+  document.getElementById('mContinue').className='m-continue show';
+  closeAC();
 });
+document.getElementById('mContinue').addEventListener('click',closeModal);
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ═══════════════════════════════════════════════════════════════
 //  BOOT
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ═══════════════════════════════════════════════════════════════
 init();
 </script>
 </body>
