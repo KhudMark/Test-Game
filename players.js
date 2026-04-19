@@ -131,7 +131,7 @@ const raw=[
 [202083,"Mike","Conley",1],[101134,"Jason","Terry",0],[203496,"Goran","Dragic",0],
 [201942,"JJ","Redick",0],[202331,"Paul","George",1],[201229,"Marc","Gasol",0],
 [203085,"Michael","Kidd-Gilchrist",0],[203114,"Khris","Middleton",1],
-[201580,"Ryan","Anderson",0],[201569,"Brook","Lopez",1],[1629","Magic","Johnson",0],
+[201580,"Ryan","Anderson",0],[201569,"Brook","Lopez",1],[1629,"Magic","Johnson",0],
 [76003,"Kareem","Abdul-Jabbar",0],[2730,"Amar'e","Stoudemire",0],[2037,"Luol","Deng",0],
 [2037,"Luol","Deng",0],[200765,"LaMarcus","Aldridge",0],[201149,"Al","Horford",1],
 [200755,"Luol","Deng",0],[2037,"Joe","Johnson",0],[2037,"Luol","Deng",0],
