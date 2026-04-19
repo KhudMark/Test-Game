@@ -8,18 +8,15 @@
 /* ── RESET ── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  /* palette — slightly lighter, less muddy */
-  --bg:#f9f7f0;
-  --text:#7a6f66;
+  --bg:#faf8ef;               /* original 2048 background */
+  --text:#776e65;
   --text-lt:#f9f6f2;
-  --grid:#c0b3a8;          /* board slightly lighter/warmer */
-  --empty:rgba(238,228,218,.55); /* more contrast vs filled tiles */
-  --btn:#9c8878;
-  --btn-h:#85726a;
+  --grid:#b8a99c;             /* slightly darker board = more contrast */
+  --empty:rgba(238,228,218,.5);
+  --btn:#9c8878;--btn-h:#85726a;
   --acc:#f67c5f;--acc-h:#e86a4e;
   --ok:#56a856;--err:#d44f4f;
-  --r:6px;
-  --ease:.16s ease;
+  --r:6px;--ease:.16s ease;
 }
 html{height:100%}
 body{
@@ -28,7 +25,7 @@ body{
   color:var(--text);min-height:100%;
   display:flex;justify-content:center;
   /* extra vertical padding — board breathes in viewport */
-  padding:24px 14px 64px;
+  padding:28px 14px 72px;
 }
 input,button{font-family:inherit}
 .game{
@@ -38,7 +35,7 @@ input,button{font-family:inherit}
 }
 
 /* ── HEADER ── */
-.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
 .title{
   font-size:clamp(2.4rem,9.5vw,3.2rem);font-weight:700;
   color:var(--text);letter-spacing:-1.5px;line-height:1
@@ -58,34 +55,33 @@ input,button{font-family:inherit}
 .sb .val.bump{transform:scale(1.32)}
 
 /* ── CONTROLS ── */
-.ctrl{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.ctrl{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
 .daily{font-size:.7rem;font-weight:500;opacity:.6;letter-spacing:.2px}
 .btns{display:flex;gap:5px}
 /* smaller, more minimal buttons */
 .btn{
-  background:rgba(187,173,160,.35);
+  background:rgba(187,173,160,.28);
   color:var(--text);
   border:none;border-radius:var(--r);
-  padding:6px 12px;
-  font-size:.7rem;font-weight:600;cursor:pointer;
-  transition:background var(--ease),transform var(--ease);
+  padding:5px 11px;
+  font-size:.68rem;font-weight:600;cursor:pointer;
+  transition:background var(--ease),transform var(--ease),filter var(--ease);
   line-height:1
 }
-.btn:hover{background:rgba(187,173,160,.55)}
+.btn:hover{background:rgba(187,173,160,.46);filter:brightness(1.03)}
 .btn:active{transform:scale(.95)}
 
 /* ── BOARD — floating card feel ── */
 .bwrap{position:relative;width:100%;touch-action:none}
 .board{
   background:var(--grid);
-  border-radius:12px;
-  padding:clamp(10px,2.4vw,13px);
+  border-radius:14px;
+  padding:clamp(11px,2.6vw,14px);
   display:grid;grid-template-columns:repeat(4,1fr);
   grid-template-rows:repeat(4,1fr);
-  gap:clamp(10px,2.4vw,13px);
+  gap:clamp(11px,2.6vw,14px);
   aspect-ratio:1;width:100%;
-  /* soft, airy shadow — not heavy */
-  box-shadow:0 4px 24px rgba(0,0,0,.12),0 1px 4px rgba(0,0,0,.08)
+  box-shadow:0 6px 30px rgba(0,0,0,.16),0 2px 6px rgba(0,0,0,.1)
 }
 .cell{background:var(--empty);border-radius:5px}
 
@@ -94,9 +90,8 @@ input,button{font-family:inherit}
   border-radius:5px;
   overflow:hidden;
   display:flex;flex-direction:column;position:relative;
-  /* inner gutter: tile colour shows as a thin mat around the image */
-  padding:3px;
-  box-shadow:0 2px 6px rgba(0,0,0,.16)
+  padding:4px;           /* wider mat = less cramped images */
+  box-shadow:0 2px 8px rgba(0,0,0,.18)
 }
 .t0{background:#eee4da}.t1{background:#ede0c8}.t2{background:#f2b179}
 .t3{background:#f59563}.t4{background:#f67c5f}.t5{background:#f65e3b}
@@ -156,27 +151,25 @@ input,button{font-family:inherit}
 .ov-body{font-size:.83rem;line-height:1.6;max-width:250px;opacity:.8}
 
 /* ── POWER-UPS — secondary, unobtrusive ── */
-.pbar{display:flex;gap:6px;margin-top:10px}
+.pbar{display:flex;gap:6px;margin-top:14px}
 .pu{
-  flex:1;background:rgba(187,173,160,.28);color:var(--text);
+  flex:1;background:rgba(187,173,160,.22);color:var(--text);
   border:none;border-radius:var(--r);
-  /* shorter padding — less dominant */
-  padding:7px 4px 6px;
+  padding:6px 4px 5px;
   cursor:pointer;display:flex;flex-direction:column;
   align-items:center;gap:2px;
-  transition:background var(--ease),transform var(--ease),opacity var(--ease);
+  transition:background var(--ease),transform var(--ease),opacity var(--ease),filter var(--ease);
   position:relative
 }
-.pu:hover:not(:disabled){background:rgba(187,173,160,.48);transform:translateY(-1px)}
+.pu:hover:not(:disabled){background:rgba(187,173,160,.4);transform:translateY(-1px);filter:brightness(1.02)}
 .pu:active:not(:disabled){transform:scale(.95) translateY(0)}
-.pu:disabled{opacity:.28;cursor:not-allowed;pointer-events:none}
+.pu:disabled{opacity:.25;cursor:not-allowed;pointer-events:none}
 .pu.active{background:var(--acc);color:#fff}
 .pu.active:hover{background:var(--acc-h)}
-/* smaller icon + label */
-.pu-ico{font-size:1.1rem;line-height:1}
-.pu-lbl{font-size:.5rem;font-weight:600;text-transform:uppercase;letter-spacing:.7px;opacity:.7}
-.pu-cnt{font-size:.76rem;font-weight:700;line-height:1}
-.pu-lock{position:absolute;bottom:4px;right:5px;font-size:.46rem;opacity:.5}
+.pu-ico{font-size:1rem;line-height:1}
+.pu-lbl{font-size:.48rem;font-weight:600;text-transform:uppercase;letter-spacing:.7px;opacity:.65}
+.pu-cnt{font-size:.72rem;font-weight:700;line-height:1}
+.pu-lock{position:absolute;bottom:4px;right:5px;font-size:.44rem;opacity:.45}
 
 /* ── STATUS BAR ── */
 .status{
